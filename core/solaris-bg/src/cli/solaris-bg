@@ -1,0 +1,224 @@
+#!/usr/bin/env bash
+# ==============================================================================
+# 🛸 SOLARIS DESKTOP BACKGROUND — MODULAR COMPONENT MANAGER
+# ==============================================================================
+
+set -e
+
+COMPONENTS=(
+    "solaris-bg-engine"
+    "solaris-bg-wifi"
+    "solaris-bg-bluetooth"
+    "solaris-bg-dock"
+    "solaris-bg-hologram"
+    "solaris-bg-activity"
+    "solaris-bg-flightdeck"
+    "solaris-bg-conduit"
+)
+
+DEFAULT_COMPONENTS=(
+    "solaris-bg-engine"
+    "solaris-bg-wifi"
+    "solaris-bg-bluetooth"
+    "solaris-bg-dock"
+    "solaris-bg-hologram"
+    "solaris-bg-activity"
+    "solaris-bg-flightdeck"
+    "solaris-bg-conduit"
+)
+
+BIN_DIR="${HOME}/.local/bin"
+PROJECT_BIN="${HOME}/Projects/solaris-bg/bin"
+
+normalize_name() {
+    local name="$1"
+    if [[ "$name" == solaris-bg-* ]]; then
+        echo "$name"
+    else
+        echo "solaris-bg-$name"
+    fi
+}
+
+get_bin() {
+    local comp="$1"
+    if [[ -x "${BIN_DIR}/${comp}" ]]; then
+        echo "${BIN_DIR}/${comp}"
+    elif [[ -x "${PROJECT_BIN}/${comp}" ]]; then
+        echo "${PROJECT_BIN}/${comp}"
+    else
+        echo ""
+    fi
+}
+
+get_pids() {
+    local comp="$1"
+    local my_pid=$$
+    local pids
+    pids=$(pgrep -x "$comp" 2>/dev/null || pidof "$comp" 2>/dev/null || pgrep -f "/${comp}(\$| )" 2>/dev/null || true)
+    if [[ -n "$pids" ]]; then
+        pids=$(echo "$pids" | grep -v "^${my_pid}$" || true)
+    fi
+    echo "$pids"
+}
+
+start_component() {
+    local comp
+    comp=$(normalize_name "$1")
+    local bin_path
+    bin_path=$(get_bin "$comp")
+
+    if [[ -z "$bin_path" ]]; then
+        echo -e "\033[0;31m[Solaris Error]\033[0m Binary $comp not found in ~/.local/bin or project bin/." >&2
+        return 1
+    fi
+
+    local pids
+    pids=$(get_pids "$comp")
+    if [[ -n "$pids" ]]; then
+        echo -e "[Solaris] \033[0;32m$comp\033[0m is already running (PID: $pids)."
+    else
+        echo -e "[Solaris] Starting \033[0;36m$comp\033[0m..."
+        MALLOC_TRIM_THRESHOLD_=65536 MALLOC_MMAP_THRESHOLD_=65536 MALLOC_ARENA_MAX=2 G_SLICE=always-malloc setsid -f "$bin_path" >/dev/null 2>&1
+        sleep 0.15
+    fi
+}
+
+stop_component() {
+    local comp
+    comp=$(normalize_name "$1")
+    local pids
+    pids=$(get_pids "$comp")
+    if [[ -n "$pids" ]]; then
+        echo -e "[Solaris] Stopping \033[0;33m$comp\033[0m (PID: $pids)..."
+        kill -9 $pids 2>/dev/null || pkill -9 -f "${comp}" 2>/dev/null || true
+        sleep 0.1
+    else
+        echo -e "[Solaris] $comp is not running."
+    fi
+}
+
+toggle_component() {
+    local comp
+    comp=$(normalize_name "$1")
+    local pids
+    pids=$(pgrep -f "${comp}" || true)
+    if [[ -n "$pids" ]]; then
+        stop_component "$comp"
+    else
+        start_component "$comp"
+    fi
+}
+
+wake_system() {
+    echo -e "[Solaris] \033[1;36m🛸 SPACECRAFT AWAKENING: Sequential Power-On Sequence & Main Grid Online...\033[0m"
+    date +%s.%N > /tmp/solaris_awakening_time 2>/dev/null || true
+    if [[ "$1" != "--silent" && "$1" != "--quiet" && "$1" != "-q" ]]; then
+        (pw-play ${HOME}/.local/share/solaris/sounds/spaceship_awakening.wav 2>/dev/null || paplay ${HOME}/.local/share/solaris/sounds/spaceship_awakening.wav 2>/dev/null || aplay ${HOME}/.local/share/solaris/sounds/spaceship_awakening.wav 2>/dev/null || true) &
+    fi
+}
+
+status_all() {
+    echo -e "\033[1;36m========================================================\033[0m"
+    echo -e "\033[1;32m🛸 SOLARIS EXTRATERRESTRIAL BACKGROUND MODULES\033[0m"
+    echo -e "\033[1;36m========================================================\033[0m"
+    for comp in "${COMPONENTS[@]}"; do
+        local pid
+        pid=$(pgrep -f "${comp}" | head -n 1 || true)
+        if [[ -n "$pid" ]]; then
+            local mem
+            mem=$(ps -p "$pid" -o rss= 2>/dev/null | awk '{printf "%.1f MB", $1/1024}' || echo "N/A")
+            local cpu
+            cpu=$(ps -p "$pid" -o %cpu= 2>/dev/null | awk '{printf "%.1f%%", $1}' || echo "0.0%")
+            printf "  %-20s : \033[1;32mONLINE\033[0m  (PID: %-6s | MEM: %-8s | CPU: %s)\n" "$comp" "$pid" "$mem" "$cpu"
+        else
+            printf "  %-20s : \033[0;90mOFFLINE\033[0m\n" "$comp"
+        fi
+    done
+    echo -e "\033[1;36m========================================================\033[0m"
+}
+
+start_all() {
+    echo -e "[Solaris] Initializing all extraterrestrial desktop background components..."
+    for comp in "${DEFAULT_COMPONENTS[@]}"; do
+        start_component "$comp"
+    done
+    sleep 0.3
+    wake_system
+    echo -e "[Solaris] All background modules initialized & online."
+}
+
+stop_all() {
+    echo -e "[Solaris] Stopping all extraterrestrial desktop background components..."
+    for comp in "${COMPONENTS[@]}"; do
+        stop_component "$comp"
+    done
+    echo -e "[Solaris] All background modules stopped."
+}
+
+restart_all() {
+    stop_all
+    sleep 0.5
+    start_all
+}
+
+case "$1" in
+    start)
+        if [[ -n "$2" ]]; then
+            start_component "$2"
+        else
+            start_all
+        fi
+        ;;
+    stop|kill|quit)
+        if [[ -n "$2" ]]; then
+            stop_component "$2"
+        else
+            stop_all
+        fi
+        ;;
+    restart)
+        if [[ -n "$2" ]]; then
+            stop_component "$2"
+            sleep 0.3
+            start_component "$2"
+        else
+            restart_all
+        fi
+        ;;
+    wake|ignite|startup)
+        wake_system
+        ;;
+    toggle)
+        if [[ -n "$2" ]]; then
+            toggle_component "$2"
+        else
+            echo "Usage: solaris-bg toggle <alien|engine|radar|audio|power|chrono|dock>"
+        fi
+        ;;
+    render|rendering)
+        solaris-render-mode "${2:-toggle}"
+        ;;
+    status|list)
+        status_all
+        ;;
+    *)
+        echo "Solaris Extraterrestrial Desktop Background Component Manager"
+        echo "Usage:"
+        echo "  solaris-bg start [component]    - Start all or specific component"
+        echo "  solaris-bg stop [component]     - Stop all or specific component"
+        echo "  solaris-bg restart [component]  - Restart all or specific component"
+        echo "  solaris-bg wake                 - Trigger awakening lights-on & speedometer sweep"
+        echo "  solaris-bg render [on|off|toggle] - Engage/disengage maximum RAM liberation rendering mode"
+        echo "  solaris-bg toggle <component>   - Toggle a component"
+        echo "  solaris-bg status               - Check status of all components"
+        echo ""
+        echo "Available Components:"
+        echo "  hologram - 3D Holographic Workspace Matrix & Controller (Center)"
+        echo "  engine   - System Engine & Telemetry Speedometer Bulkhead (Bottom Left)"
+        echo "  radar    - Tactical Holographic Sweep Radar & RF Matrix (Center)"
+        echo "  audio    - Aetheris Audio Matrix & Equalizer HUD (Top Right)"
+        echo "  power    - Power Core Reactor & Workspaces Bulkhead (Right)"
+        echo "  chrono   - Orbital Chrono & Canopy Rail (Top Center)"
+        echo "  dock     - Quick Operations Command Dock (Bottom Center)"
+        ;;
+esac

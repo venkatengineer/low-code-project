@@ -1,0 +1,20 @@
+[Desktop Entry]
+Type=Application
+Name=Solaris Dashboard
+GenericName=Alienware System Control Interface
+Comment=Alienware-inspired System Control Interface & Cockpit Dashboard for Linux & Niri
+Exec=solaris-dashboard %U
+Icon=preferences-desktop-display
+Terminal=false
+Categories=System;Monitor;Utility;Settings;
+StartupWMClass=solaris-dashboard
+Keywords=dashboard;system;monitor;alienware;cockpit;telemetry;niri;hud;
+Actions=ToggleHUD;HideHUD;
+
+[Desktop Action ToggleHUD]
+Name=Toggle Dashboard Overlay
+Exec=solaris-dashboard --toggle
+
+[Desktop Action HideHUD]
+Name=Hide Dashboard Overlay
+Exec=solaris-dashboard --hide

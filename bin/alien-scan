@@ -1,0 +1,119 @@
+#!/usr/bin/env python3
+import time
+import sys
+import os
+import random
+import platform
+import shutil
+
+# ANSI TrueColor & 256 colors
+GREEN = "\033[38;2;57;255;20m"
+BRIGHT_GREEN = "\033[38;2;0;255;128m"
+CYAN = "\033[38;2;0;240;255m"
+DARK_GREEN = "\033[38;2;0;140;60m"
+PURPLE = "\033[38;2;200;80;255m"
+YELLOW = "\033[38;2;255;230;0m"
+RED = "\033[38;2;255;50;50m"
+BOLD = "\033[1m"
+DIM = "\033[2m"
+RESET = "\033[0m"
+
+RUNES = ["⟁", "ᛯ", "⏣", "⌬", "⎔", "⍟", "ᚷ", "ᛞ", "⍹", "⍾", "⎎", "⍎", "⍕", "⍱", "⍲", "⍧", "⍪", "⍫"]
+
+def print_slow(text, delay=0.015, newline=True):
+    for char in text:
+        sys.stdout.write(char)
+        sys.stdout.flush()
+        time.sleep(delay)
+    if newline:
+        sys.stdout.write("\n")
+        sys.stdout.flush()
+
+def progress_bar(label, percent, color=BRIGHT_GREEN, width=32):
+    filled = int(width * (percent / 100))
+    bar = "█" * filled + "░" * (width - filled)
+    return f"{color}[{bar}] {percent:5.1f}%{RESET}"
+
+def get_mem_info():
+    try:
+        with open("/proc/meminfo") as f:
+            lines = f.readlines()
+        total, free, avail = 0, 0, 0
+        for line in lines:
+            if "MemTotal:" in line:
+                total = int(line.split()[1])
+            elif "MemAvailable:" in line:
+                avail = int(line.split()[1])
+        used = total - avail
+        pct = (used / total) * 100 if total > 0 else 0
+        return used / (1024*1024), total / (1024*1024), pct
+    except:
+        return 5.2, 16.0, 32.5
+
+def get_load_avg():
+    try:
+        return os.getloadavg()
+    except:
+        return (0.42, 0.58, 0.65)
+
+def main():
+    term_width = shutil.get_terminal_size((80, 24)).columns
+    print("\n" + f"{BRIGHT_GREEN}{'='*min(term_width, 68)}{RESET}")
+    print(f"{BOLD}{GREEN}  👽 MOTHERSHIP XENO-DIAGNOSTIC TELEMETRY PROBE v9.4 🛸{RESET}")
+    print(f"{CYAN}  « INITIALIZING DEEP TACHYON FREQUENCY SCAN »{RESET}")
+    print(f"{BRIGHT_GREEN}{'='*min(term_width, 68)}{RESET}\n")
+    time.sleep(0.3)
+
+    stages = [
+        ("Establishing Subspace Uplink to Mothership Orbit", "UPLINK LOCKED (1420.405 MHz)"),
+        ("Calibrating Xenomorph Neural Synapse Arrays", "SYNAPSE INTEGRITY 100%"),
+        ("Scanning Bio-Mechanical Hardware Vectors", "VESSEL IDENTIFIED: ALIENWARE 16 AURORA"),
+        ("Sampling Local Quantum Entanglement Matrix", "ENTANGLEMENT STABLE: 0.0034 ns"),
+        ("Decoding Planetary Bio-Atmosphere & Signals", "SOLARIS STATION / ARCH SYSTEM"),
+    ]
+
+    for stage, status in stages:
+        sys.stdout.write(f" {YELLOW}»{RESET} {BOLD}{stage:<48}{RESET} ")
+        sys.stdout.flush()
+        # Animated spinner / runes
+        for _ in range(10):
+            r = random.choice(RUNES)
+            sys.stdout.write(f"\b{PURPLE}{r}{RESET}")
+            sys.stdout.flush()
+            time.sleep(0.04)
+        print(f"\b{BRIGHT_GREEN}✓ [{status}]{RESET}")
+        time.sleep(0.08)
+
+    print()
+    used_mem, total_mem, mem_pct = get_mem_info()
+    load1, load5, load15 = get_load_avg()
+    cpu_cores = os.cpu_count() or 16
+
+    print(f"{BOLD}{CYAN}╔═════════════════════[ BIO-CORE METRICS ]═══════════════════════╗{RESET}")
+    print(f"{CYAN}║{RESET}  🧠 {BOLD}SYNAPSE CORES  :{RESET} {GREEN}{cpu_cores} Quantum Execution Nodes{RESET}")
+    print(f"{CYAN}║{RESET}  ⚡ {BOLD}NEURAL LOAD    :{RESET} {load1:.2f} (1m), {load5:.2f} (5m), {load15:.2f} (15m)")
+    print(f"{CYAN}║{RESET}  💾 {BOLD}ORGANIC RAM    :{RESET} {progress_bar('RAM', mem_pct, GREEN, 24)} {used_mem:.2f}/{total_mem:.1f} GB")
+    print(f"{CYAN}║{RESET}  🛸 {BOLD}WARP VESSEL    :{RESET} {PURPLE}{platform.node()} ({platform.system()} {platform.release()}){RESET}")
+    print(f"{CYAN}║{RESET}  🧬 {BOLD}XENO-SIGNATURE :{RESET} {YELLOW}0x7F-RETICULI-ALPHA-99{RESET}")
+    print(f"{CYAN}║{RESET}  🛡️ {BOLD}DEFLECTOR SHIELD:{RESET} {progress_bar('SHIELD', 98.4, CYAN, 24)}")
+    print(f"{CYAN}║{RESET}  📡 {BOLD}SUBSPACE STATUS:{RESET} {BRIGHT_GREEN}ACTIVE - BEACON BROADCASTING{RESET}")
+    print(f"{CYAN}╚════════════════════════════════════════════════════════════════╝{RESET}\n")
+
+    # Animated bio-wave
+    print(f"{BOLD}{GREEN}  FREQUENCY SPECTRUM RESONANCE:{RESET}")
+    wave_chars = [" ", "▂", "▃", "▄", "▅", "▆", "▇", "█"]
+    line = "  "
+    for i in range(min(term_width - 6, 50)):
+        h = int(4 + 3.5 * math.sin(i * 0.35))
+        h = max(0, min(7, h))
+        col = GREEN if i % 2 == 0 else CYAN
+        line += f"{col}{wave_chars[h]}{RESET}"
+    print(line + "\n")
+    print(f"{BRIGHT_GREEN}  👽 ALL MOTHERSHIP SYSTEMS NOMINAL. GLORY TO THE EMPIRE. 🛸{RESET}\n")
+
+if __name__ == "__main__":
+    import math
+    try:
+        main()
+    except KeyboardInterrupt:
+        print("\nScan aborted by operator.")

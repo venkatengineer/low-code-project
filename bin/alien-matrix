@@ -1,0 +1,108 @@
+#!/usr/bin/env python3
+import curses
+import random
+import time
+import sys
+
+RUNES = [
+    "⟁", "ᛯ", "⏣", "⌬", "⎔", "⍟", "ᚷ", "ᛞ", "⍹", "⍾", "⎎", "⍎", "⍕", "⍱", "⍲", "⍧", "⍪", "⍫", "⍰", "᚛", "᚜",
+    "0", "1", "X", "E", "N", "O", "Ω", "Ψ", "Δ", "Ξ", "λ", "π", "☿", "♃", "♄", "♅", "♆", "♇", "✦", "✧", "🛸", "👽"
+]
+
+PALETTES = [
+    # (Lead, Mid, Tail, Dim)
+    ("BIO-GREEN", curses.COLOR_WHITE, curses.COLOR_GREEN, curses.COLOR_GREEN, curses.COLOR_BLACK),
+    ("PLASMA-CYAN", curses.COLOR_WHITE, curses.COLOR_CYAN, curses.COLOR_BLUE, curses.COLOR_BLACK),
+    ("RADIOACTIVE-PURPLE", curses.COLOR_WHITE, curses.COLOR_MAGENTA, curses.COLOR_BLUE, curses.COLOR_BLACK),
+    ("SOLAR-AMBER", curses.COLOR_WHITE, curses.COLOR_YELLOW, curses.COLOR_RED, curses.COLOR_BLACK),
+]
+
+class Column:
+    def __init__(self, x, max_y):
+        self.x = x
+        self.max_y = max_y
+        self.reset()
+
+    def reset(self):
+        self.y = random.randint(-self.max_y, 0)
+        self.speed = random.choice([1, 1, 2])
+        self.length = random.randint(6, max(8, self.max_y - 4))
+        self.chars = [random.choice(RUNES) for _ in range(self.length + 5)]
+
+    def update(self):
+        self.y += self.speed
+        if random.random() < 0.2:
+            idx = random.randint(0, len(self.chars) - 1)
+            self.chars[idx] = random.choice(RUNES)
+        if self.y - self.length > self.max_y:
+            self.reset()
+
+def main(stdscr):
+    curses.curs_set(0)
+    stdscr.nodelay(True)
+    curses.start_color()
+    curses.use_default_colors()
+
+    # Init color pairs
+    curses.init_pair(1, curses.COLOR_WHITE, -1)   # Lead head
+    curses.init_pair(2, curses.COLOR_GREEN, -1)   # Bright green
+    curses.init_pair(3, curses.COLOR_CYAN, -1)    # Bright cyan
+    curses.init_pair(4, curses.COLOR_MAGENTA, -1) # Purple
+    curses.init_pair(5, curses.COLOR_YELLOW, -1)  # Amber
+
+    palette_idx = 0
+    max_y, max_x = stdscr.getmaxyx()
+    columns = [Column(x, max_y) for x in range(0, max_x, 2)]
+
+    while True:
+        key = stdscr.getch()
+        if key in (ord('q'), ord('Q'), 27):
+            break
+        elif key in (ord('c'), ord('C')):
+            palette_idx = (palette_idx + 1) % len(PALETTES)
+        elif key in (ord('r'), ord('R')):
+            for col in columns:
+                col.reset()
+
+        new_y, new_x = stdscr.getmaxyx()
+        if new_y != max_y or new_x != max_x:
+            max_y, max_x = new_y, new_x
+            columns = [Column(x, max_y) for x in range(0, max_x, 2)]
+
+        stdscr.erase()
+
+        # Active color pair
+        color_pair_map = [2, 3, 4, 5]
+        trail_color = curses.color_pair(color_pair_map[palette_idx])
+
+        for col in columns:
+            col.update()
+            for i in range(col.length):
+                py = col.y - i
+                if 0 <= py < max_y and col.x < max_x:
+                    ch = col.chars[i % len(col.chars)]
+                    # Avoid emoji crash on 1-char width terminals
+                    if len(ch) > 1:
+                        ch = "⟁"
+                    if i == 0:
+                        stdscr.addstr(py, col.x, ch, curses.color_pair(1) | curses.A_BOLD)
+                    elif i < 3:
+                        stdscr.addstr(py, col.x, ch, trail_color | curses.A_BOLD)
+                    elif i < col.length - 2:
+                        stdscr.addstr(py, col.x, ch, trail_color)
+                    else:
+                        stdscr.addstr(py, col.x, ch, trail_color | curses.A_DIM)
+
+        # Draw HUD status at top right
+        status = f" 👽 ALIEN GLYPH RAIN [{PALETTES[palette_idx][0]}] [C: Switch Palette | Q: Exit] "
+        if max_x > len(status) + 4:
+            stdscr.addstr(0, max_x - len(status) - 2, status, trail_color | curses.A_REVERSE)
+
+        stdscr.refresh()
+        time.sleep(0.05)
+
+if __name__ == "__main__":
+    try:
+        curses.wrapper(main)
+    except KeyboardInterrupt:
+        pass

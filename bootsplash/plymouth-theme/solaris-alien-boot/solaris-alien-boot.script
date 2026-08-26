@@ -1,0 +1,34 @@
+# Solaris OS Alien Boot Animation Script - 225 Frames (30 FPS)
+total_frames = 225;
+for (i = 0; i < total_frames; i++) {
+  progress_images[i] = Image("progress-" + i + ".png");
+}
+
+sprite = Sprite();
+sprite.SetZ(10);
+
+frame_idx = 0;
+counter = 0;
+
+fun refresh_callback () {
+  counter++;
+  if (frame_idx < total_frames - 1) {
+    frame_idx++;
+  } else {
+    # Keep final status frame visible or pulse
+    frame_idx = total_frames - 1;
+  }
+
+  img = progress_images[frame_idx];
+  sprite.SetImage(img);
+
+  screen_w = Window.GetWidth();
+  screen_h = Window.GetHeight();
+  img_w = img.GetWidth();
+  img_h = img.GetHeight();
+
+  sprite.SetX((screen_w - img_w) / 2);
+  sprite.SetY((screen_h - img_h) / 2);
+}
+
+Plymouth.SetRefreshFunction(refresh_callback);

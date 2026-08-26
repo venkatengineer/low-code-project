@@ -1,0 +1,25 @@
+[Desktop Entry]
+Type=Application
+Name=Aetheris
+GenericName=Extraterrestrial Holographic Music Player
+Comment=Alien Holographic HUD & Spotify Music Player
+Exec=aetheris %U
+Icon=aetheris
+Terminal=false
+Categories=AudioVideo;Audio;Player;Music;
+MimeType=audio/mpeg;audio/mp3;audio/ogg;audio/flac;audio/wav;audio/x-wav;audio/aac;audio/m4a;audio/x-m4a;audio/mp4;audio/webm;x-scheme-handler/spotify;
+StartupWMClass=aetheris
+Keywords=spotify;overlay;music;player;alien;hud;aetheris;audio;
+Actions=ToggleHUD;ShowHUD;HideHUD;
+
+[Desktop Action ToggleHUD]
+Name=Toggle HUD Overlay
+Exec=aetheris --toggle
+
+[Desktop Action ShowHUD]
+Name=Show HUD Overlay
+Exec=aetheris --show
+
+[Desktop Action HideHUD]
+Name=Hide HUD Overlay
+Exec=aetheris --hide

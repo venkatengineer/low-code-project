@@ -1,0 +1,349 @@
+// ==============================================================================
+// 🛸 SOLARIS SPACECRAFT COMMAND DECK — NIRI COMPOSITOR CONFIGURATION
+// Engineered for military/aerospace precision, high readability & immersion
+// ==============================================================================
+
+input {
+    keyboard {
+        xkb {
+        }
+        numlock
+    }
+
+    touchpad {
+        tap
+        natural-scroll
+    }
+
+    mouse {
+    }
+
+    trackpoint {
+    }
+}
+
+// Layout Architecture
+layout {
+    // Modular Spacecraft Console Gaps
+    gaps 10
+
+    // Center focused column
+    center-focused-column "on-overflow"
+
+    preset-column-widths {
+        proportion 0.33333
+        proportion 0.5
+        proportion 0.66667
+    }
+
+    default-column-width { proportion 0.5; }
+
+    // Thin Aerospace Focus Ring (Restrained Cold Cyan Edge)
+    focus-ring {
+        width 1.5
+        active-color "#00e5ff"
+        inactive-color "#0c141d"
+    }
+
+    // High-Precision Technical Armor Border
+    border {
+        width 1.0
+        active-color "#00a6fb"
+        inactive-color "#060a0f"
+        urgent-color "#ff2a5f"
+    }
+
+    // Atmospheric Deep Ambient Occlusion Shadow
+    shadow {
+        on
+        softness 16
+        spread 1
+        offset x=0 y=4
+        color "#00050acc"
+    }
+}
+
+spawn-at-startup "waybar"
+spawn-at-startup "swaybg" "-c" "#03070d"
+spawn-at-startup "solaris-bg" "start"
+spawn-at-startup "solaris-power-listener"
+spawn-at-startup "solaris-lock"
+
+hotkey-overlay {
+    skip-at-startup
+}
+
+prefer-no-csd
+
+screenshot-path "~/Pictures/Screenshots/Screenshot from %Y-%m-%d %H-%M-%S.png"
+
+// Aerospace Motion Architecture
+include "animations.kdl"
+
+// =============================================================================
+// WINDOW RULES & CONSOLE TREATMENTS
+// =============================================================================
+
+// Work around WezTerm's initial configure bug
+window-rule {
+    match app-id=r#"^org\.wezfurlong\.wezterm$"#
+    default-column-width {}
+}
+
+// Firefox Picture-in-Picture
+window-rule {
+    match app-id=r#"firefox$"# title="^Picture-in-Picture$"
+    open-floating true
+}
+
+// Audio Mixer GUI
+window-rule {
+    match app-id=r#"pavucontrol$"#
+    open-floating true
+    default-column-width { proportion 0.45; }
+    default-window-height { proportion 0.55; }
+}
+
+// DSP Studio
+window-rule {
+    match app-id=r#"com\.github\.wwmm\.easyeffects"#
+    open-floating true
+}
+
+// Process Nexus HUD
+window-rule {
+    match app-id=r#"^xenomon-hud$"#
+    open-floating true
+    default-column-width { proportion 0.80; }
+    default-window-height { proportion 0.80; }
+}
+
+// Command Matrix HUD
+window-rule {
+    match app-id=r#"^alien-cmd-hud$"#
+    open-floating true
+    default-column-width { proportion 0.65; }
+    default-window-height { proportion 0.65; }
+}
+
+// Nautilus File Explorer (Solaris Matrix)
+window-rule {
+    match app-id=r#"^org\.gnome\.Nautilus$"#
+    default-column-width { proportion 0.60; }
+    default-window-height { proportion 0.75; }
+    shadow {
+        on
+        softness 16
+        spread 2
+        offset x=0 y=4
+        color "rgba(0, 240, 255, 0.15)"
+    }
+}
+
+// Solaris Starship Data Navigator
+window-rule {
+    match title=r#"^SOLARIS // DATA NAVIGATOR"#
+    default-column-width { proportion 0.85; }
+    default-window-height { proportion 0.85; }
+    border {
+        on
+        width 1
+        active-color "#38bdf8"
+        inactive-color "#17202e"
+    }
+    shadow {
+        on
+        softness 24
+        spread 2
+        offset x=0 y=6
+        color "rgba(56, 189, 248, 0.20)"
+    }
+}
+
+// Audio HUD: Aetheris
+window-rule {
+    match app-id=r#"^aetheris"#
+    open-floating true
+    border { off; }
+    shadow { off; }
+    focus-ring { off; }
+}
+
+// Solaris Spacecraft Cockpit Dashboard Overlay
+window-rule {
+    match title=r#"^Solaris"#
+    open-floating true
+    border { off; }
+    shadow { off; }
+    focus-ring { off; }
+}
+
+window-rule {
+    match app-id=r#"^solaris-dashboard"#
+    open-floating true
+    border { off; }
+    shadow { off; }
+    focus-ring { off; }
+}
+
+window-rule {
+    match title=r#"^Aetheris"#
+    open-floating true
+    border { off; }
+    shadow { off; }
+    focus-ring { off; }
+}
+
+// Precision Floating Window Elevation
+window-rule {
+    match is-floating=true
+    shadow {
+        on
+        softness 28
+        spread 2
+        offset x=0 y=6
+        color "#00050aff"
+    }
+}
+
+// Spacecraft Station Definitions
+workspace "background"
+
+// Background Audio Daemon
+window-rule {
+    match app-id=r#"^spotify$"#
+    open-on-workspace "background"
+    open-floating true
+    open-focused false
+    opacity 0.0
+    block-out-from "screen-capture"
+    default-column-width { proportion 0.01; }
+    default-window-height { proportion 0.01; }
+}
+
+// Aerospace Small Corner Radius (Precision Chamfer)
+window-rule {
+    geometry-corner-radius 3
+    clip-to-geometry true
+}
+
+// =============================================================================
+// KEYBOARD COMMAND MATRIX & BINDS
+// =============================================================================
+binds {
+    // Hotkey Overlay: Spacecraft Operating Manual
+    Mod+Shift+Slash hotkey-overlay-title="SPACECRAFT OPERATING MANUAL" { show-hotkey-overlay; }
+
+    // Core Instrumentation
+    Mod+T hotkey-overlay-title="INITIALIZE PRIMARY SHIP TERMINAL (KITTY)" { spawn "kitty" "-1"; }
+    Mod+D hotkey-overlay-title="APPLICATION LAUNCH MATRIX (FUZZEL)" { spawn "fuzzel"; }
+    Mod+E hotkey-overlay-title="STARSHIP DATA NAVIGATOR (SOLARIS-EXPLORER)" { spawn "solaris-explorer"; }
+    Super+E hotkey-overlay-title="STARSHIP DATA NAVIGATOR (SOLARIS-EXPLORER)" { spawn "solaris-explorer"; }
+    Super+Alt+L hotkey-overlay-title="SECURITY LOCKDOWN (VOICE / PIN)" { spawn "solaris-lock"; }
+    Mod+Alt+L hotkey-overlay-title="SECURITY LOCKDOWN (VOICE / PIN)" { spawn "solaris-lock"; }
+    
+    // Process & Task Telemetry
+    Ctrl+Shift+Escape hotkey-overlay-title="PROCESS TELEMETRY NEXUS (XENOMON)" { spawn "kitty" "-1" "--class=xenomon-hud" "-e" "xenomon"; }
+    Mod+Shift+Escape hotkey-overlay-title="PROCESS TELEMETRY NEXUS (XENOMON)" { spawn "kitty" "-1" "--class=xenomon-hud" "-e" "xenomon"; }
+    
+    // Command Matrix
+    Mod+Slash hotkey-overlay-title="INTERACTIVE COMMAND MATRIX (ALIEN-CMD)" { spawn "kitty" "-1" "--class=alien-cmd-hud" "-e" "alien-cmd"; }
+
+    // Audio & Telemetry HUD Toggles
+    Mod+Shift+M hotkey-overlay-title="AUDIO MATRIX HUD TOGGLE" { spawn "solaris-bg" "toggle" "audio"; }
+    Mod+Shift+D hotkey-overlay-title="RADAR MATRIX HUD TOGGLE" { spawn "solaris-bg" "toggle" "radar"; }
+    Mod+Shift+H hotkey-overlay-title="3D HOLOGRAPHIC WORKSPACE COMMAND CENTER" { spawn "solaris-hologram" "--toggle"; }
+    Mod+W       hotkey-overlay-title="3D HOLOGRAPHIC WORKSPACE COMMAND CENTER" { spawn "solaris-hologram" "--toggle"; }
+    Mod+P       hotkey-overlay-title="CYCLE POWER REACTOR // OVERCLOCK / BALANCED / CRYO" { spawn "solaris-power-mode" "cycle"; }
+    Super+P     hotkey-overlay-title="CYCLE POWER REACTOR // OVERCLOCK / BALANCED / CRYO" { spawn "solaris-power-mode" "cycle"; }
+    Mod+Alt+R   hotkey-overlay-title="ENGAGE / DISENGAGE RENDERING MODE (PURGE & FREE RAM)" { spawn "solaris-render-mode" "toggle"; }
+    Super+Alt+R hotkey-overlay-title="ENGAGE / DISENGAGE RENDERING MODE (PURGE & FREE RAM)" { spawn "solaris-render-mode" "toggle"; }
+
+    // Media & Audio Controls
+    XF86AudioRaiseVolume allow-when-locked=true { spawn-sh "wpctl set-volume @DEFAULT_AUDIO_SINK@ 0.05+ -l 1.0"; }
+    XF86AudioLowerVolume allow-when-locked=true { spawn-sh "wpctl set-volume @DEFAULT_AUDIO_SINK@ 0.05-"; }
+    XF86AudioMute        allow-when-locked=true { spawn-sh "wpctl set-mute @DEFAULT_AUDIO_SINK@ toggle"; }
+    XF86AudioMicMute     allow-when-locked=true { spawn-sh "wpctl set-mute @DEFAULT_AUDIO_SOURCE@ toggle"; }
+    XF86AudioPlay        allow-when-locked=true { spawn-sh "playerctl play-pause"; }
+    XF86AudioStop        allow-when-locked=true { spawn-sh "playerctl stop"; }
+    XF86AudioPrev        allow-when-locked=true { spawn-sh "playerctl previous"; }
+    XF86AudioNext        allow-when-locked=true { spawn-sh "playerctl next"; }
+
+    // Brightness Controls
+    XF86MonBrightnessUp   allow-when-locked=true { spawn "brightnessctl" "--class=backlight" "set" "+10%"; }
+    XF86MonBrightnessDown allow-when-locked=true { spawn "brightnessctl" "--class=backlight" "set" "10%-"; }
+
+    // Orbital Overview
+    Mod+O repeat=false hotkey-overlay-title="ORBITAL WORKSPACE OVERVIEW" { toggle-overview; }
+
+    // Console Management
+    Mod+Q repeat=false hotkey-overlay-title="DECOMMISSION / CLOSE CONSOLE" { close-window; }
+    Mod+F hotkey-overlay-title="MAXIMIZE CONSOLE VIEWPORT" { maximize-column; }
+    Mod+Shift+F hotkey-overlay-title="FULLSCREEN CONSOLE" { fullscreen-window; }
+    Mod+M hotkey-overlay-title="EXPAND CONSOLE TO SCREEN EDGES" { maximize-window-to-edges; }
+    Mod+V hotkey-overlay-title="DOCK / UNDOCK CONSOLE (FLOAT / TILE)" { toggle-window-floating; }
+    Mod+Shift+V hotkey-overlay-title="SWITCH FOCUS (FLOAT / TILE)" { switch-focus-between-floating-and-tiling; }
+
+    // Console Navigation
+    Mod+Left  hotkey-overlay-title="NAVIGATE CONSOLE COLUMN LEFT" { focus-column-left; }
+    Mod+Right hotkey-overlay-title="NAVIGATE CONSOLE COLUMN RIGHT" { focus-column-right; }
+    Mod+Down  hotkey-overlay-title="NAVIGATE CONSOLE STACK DOWN" { focus-window-down; }
+    Mod+Up    hotkey-overlay-title="NAVIGATE CONSOLE STACK UP" { focus-window-up; }
+    Mod+H     hotkey-overlay-title="NAVIGATE CONSOLE COLUMN LEFT" { focus-column-left; }
+    Mod+L     hotkey-overlay-title="NAVIGATE CONSOLE COLUMN RIGHT" { focus-column-right; }
+    Mod+J     hotkey-overlay-title="NAVIGATE CONSOLE STACK DOWN" { focus-window-down; }
+    Mod+K     hotkey-overlay-title="NAVIGATE CONSOLE STACK UP" { focus-window-up; }
+
+    // Move Consoles
+    Mod+Ctrl+Left  hotkey-overlay-title="MOVE CONSOLE COLUMN LEFT" { move-column-left; }
+    Mod+Ctrl+Right hotkey-overlay-title="MOVE CONSOLE COLUMN RIGHT" { move-column-right; }
+    Mod+Ctrl+Down  hotkey-overlay-title="MOVE CONSOLE DOWN" { move-window-down; }
+    Mod+Ctrl+Up    hotkey-overlay-title="MOVE CONSOLE UP" { move-window-up; }
+    Mod+Ctrl+H     hotkey-overlay-title="MOVE CONSOLE COLUMN LEFT" { move-column-left; }
+    Mod+Ctrl+L     hotkey-overlay-title="MOVE CONSOLE COLUMN RIGHT" { move-column-right; }
+    Mod+Ctrl+J     hotkey-overlay-title="MOVE CONSOLE DOWN" { move-window-down; }
+    Mod+Ctrl+K     hotkey-overlay-title="MOVE CONSOLE UP" { move-window-up; }
+
+    // Consume and Expel
+    Mod+BracketLeft  hotkey-overlay-title="CONSUME OR EXPEL CONSOLE LEFT" { consume-or-expel-window-left; }
+    Mod+BracketRight hotkey-overlay-title="CONSUME OR EXPEL CONSOLE RIGHT" { consume-or-expel-window-right; }
+    Mod+Comma        hotkey-overlay-title="CONSUME CONSOLE INTO COLUMN" { consume-window-into-column; }
+    Mod+Period       hotkey-overlay-title="EXPEL CONSOLE FROM COLUMN" { expel-window-from-column; }
+
+    // Column Width Presets
+    Mod+R       hotkey-overlay-title="CYCLE CONSOLE WIDTH PRESET (1/3, 1/2, 2/3)" { switch-preset-column-width; }
+    Mod+Shift+R hotkey-overlay-title="CYCLE CONSOLE WIDTH BACK" { switch-preset-column-width-back; }
+    Mod+Ctrl+F  hotkey-overlay-title="EXPAND CONSOLE TO AVAILABLE WIDTH" { expand-column-to-available-width; }
+    Mod+C       hotkey-overlay-title="CENTER CONSOLE COLUMN" { center-column; }
+
+    // Station Selectors (Workspaces)
+    Mod+1 hotkey-overlay-title="ENGAGE STATION 01: COMMAND" { focus-workspace 1; }
+    Mod+2 hotkey-overlay-title="ENGAGE STATION 02: ENGINEERING" { focus-workspace 2; }
+    Mod+3 hotkey-overlay-title="ENGAGE STATION 03: NAVIGATION" { focus-workspace 3; }
+    Mod+4 hotkey-overlay-title="ENGAGE STATION 04: COMMS" { focus-workspace 4; }
+    Mod+5 hotkey-overlay-title="ENGAGE STATION 05: SCIENCE" { focus-workspace 5; }
+    Mod+6 hotkey-overlay-title="ENGAGE STATION 06: AUXILIARY" { focus-workspace 6; }
+    
+    Mod+Ctrl+1 hotkey-overlay-title="TRANSFER CONSOLE TO STATION 01" { move-column-to-workspace 1; }
+    Mod+Ctrl+2 hotkey-overlay-title="TRANSFER CONSOLE TO STATION 02" { move-column-to-workspace 2; }
+    Mod+Ctrl+3 hotkey-overlay-title="TRANSFER CONSOLE TO STATION 03" { move-column-to-workspace 3; }
+    Mod+Ctrl+4 hotkey-overlay-title="TRANSFER CONSOLE TO STATION 04" { move-column-to-workspace 4; }
+    Mod+Ctrl+5 hotkey-overlay-title="TRANSFER CONSOLE TO STATION 05" { move-column-to-workspace 5; }
+    Mod+Ctrl+6 hotkey-overlay-title="TRANSFER CONSOLE TO STATION 06" { move-column-to-workspace 6; }
+
+    Mod+Page_Down hotkey-overlay-title="NEXT STATION" { focus-workspace-down; }
+    Mod+Page_Up   hotkey-overlay-title="PREVIOUS STATION" { focus-workspace-up; }
+
+    // Screen Capture
+    Print      hotkey-overlay-title="CAPTURE SCREENSHOT" { screenshot; }
+    Ctrl+Print hotkey-overlay-title="CAPTURE FULL DISPLAY" { screenshot-screen; }
+    Alt+Print  hotkey-overlay-title="CAPTURE CONSOLE WINDOW" { screenshot-window; }
+
+    // Inhibitor Escape Hatch
+    Mod+Escape allow-inhibiting=false { toggle-keyboard-shortcuts-inhibit; }
+
+    // Session Management
+    Mod+Shift+E hotkey-overlay-title="EXIT SOLARIS SESSION" { quit; }
+    Ctrl+Alt+Delete hotkey-overlay-title="EXIT SOLARIS SESSION" { quit; }
+    Mod+Shift+P hotkey-overlay-title="POWER OFF BRIDGE MONITORS" { power-off-monitors; }
+}

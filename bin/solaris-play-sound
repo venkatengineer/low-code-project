@@ -1,0 +1,96 @@
+#!/usr/bin/env python3
+"""
+🛸 SOLARIS SPACECRAFT // UNIFIED AUDIO DISPATCHER
+Handles all sound effects (unlock, power modes, rendering mode, awakening)
+Ensures outputs are unmuted, sets up proper PipeWire/PulseAudio environment,
+and guarantees low-latency reliable playback across all background services.
+"""
+
+import os
+import sys
+import subprocess
+
+HOME_DIR = os.path.expanduser("~")
+SOUND_DIR = os.environ.get("SOLARIS_SOUND_DIR", f"{HOME_DIR}/.local/share/solaris/sounds")
+SOUND_MAP = {
+    "unlock": f"{SOUND_DIR}/solaris_unlock.wav",
+    "lock": f"{SOUND_DIR}/solaris_unlock.wav",
+    "warp": f"{SOUND_DIR}/warp_overclock.wav",
+    "overclock": f"{SOUND_DIR}/warp_overclock.wav",
+    "performance": f"{SOUND_DIR}/warp_overclock.wav",
+    "balanced": f"{SOUND_DIR}/nominal_balanced.wav",
+    "nominal": f"{SOUND_DIR}/nominal_balanced.wav",
+    "cryo": f"{SOUND_DIR}/cryo_saver.wav",
+    "saver": f"{SOUND_DIR}/cryo_saver.wav",
+    "power-saver": f"{SOUND_DIR}/cryo_saver.wav",
+    "powersave": f"{SOUND_DIR}/cryo_saver.wav",
+    "render-on": f"{SOUND_DIR}/render_engage.wav",
+    "render_engage": f"{SOUND_DIR}/render_engage.wav",
+    "render-off": f"{SOUND_DIR}/render_disengage.wav",
+    "render_disengage": f"{SOUND_DIR}/render_disengage.wav",
+    "awakening": f"{SOUND_DIR}/spaceship_awakening.wav",
+    "wake": f"{SOUND_DIR}/spaceship_awakening.wav",
+}
+
+def ensure_audio_unmuted():
+    try:
+        subprocess.run(["wpctl", "set-mute", "@DEFAULT_AUDIO_SINK@", "0"], stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL, check=False)
+        subprocess.run(["wpctl", "set-volume", "@DEFAULT_AUDIO_SINK@", "1.0"], stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL, check=False)
+        for ctrl in ['Master', 'Speaker', 'Headphone', 'PCM']:
+            subprocess.run(["amixer", "-c", "0", "sset", ctrl, "100%", "unmute"], stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL, check=False)
+    except Exception:
+        pass
+
+def play(path):
+    if not os.path.exists(path):
+        return False
+
+    ensure_audio_unmuted()
+
+    env = os.environ.copy()
+    uid = os.getuid()
+    env["XDG_RUNTIME_DIR"] = os.environ.get("XDG_RUNTIME_DIR", f"/run/user/{uid}")
+    env["PULSE_SERVER"] = f"/run/user/{uid}/pulse/native"
+
+    # Play order: paplay -> pw-play -> aplay -D default -> ffplay
+    for player in [
+        ["paplay", path],
+        ["pw-play", path],
+        ["aplay", "-D", "default", "-q", path],
+        ["ffplay", "-nodisp", "-autoexit", "-loglevel", "quiet", path]
+    ]:
+        try:
+            res = subprocess.run(player, env=env, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL, check=False)
+            if res.returncode == 0:
+                return True
+        except Exception:
+            continue
+    return False
+
+def main():
+    if len(sys.argv) < 2:
+        print("Usage: solaris-play-sound <sound_name_or_file>")
+        sys.exit(1)
+
+    target = sys.argv[1].lower()
+    if target in ("unlock", "lock", "startup", "engine_start"):
+        dispatcher = f"{HOME_DIR}/.local/share/sounds/play_unlock_sequence.py"
+        py_bin = f"{HOME_DIR}/.local/share/solaris-voice-env/bin/python3"
+        if not os.path.exists(py_bin):
+            py_bin = sys.executable
+        if os.path.exists(dispatcher) and os.path.exists(py_bin):
+            res = subprocess.run([py_bin, dispatcher], check=False)
+            sys.exit(res.returncode)
+
+    sound_path = SOUND_MAP.get(target, target)
+    if not os.path.exists(sound_path):
+        # Check in SOUND_DIR
+        candidate = os.path.join(SOUND_DIR, target if target.endswith(".wav") else f"{target}.wav")
+        if os.path.exists(candidate):
+            sound_path = candidate
+
+    success = play(sound_path)
+    sys.exit(0 if success else 1)
+
+if __name__ == "__main__":
+    main()

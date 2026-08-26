@@ -1,0 +1,33 @@
+# Object & Compiled Binaries
+*.o
+*.so
+*.a
+core/solaris-bg/bin/*
+core/solaris-hologram/bin/*
+!core/solaris-bg/bin/.gitkeep
+!core/solaris-hologram/bin/.gitkeep
+
+# Intermediate render frames
+bootsplash/output/frames_*
+
+# Python caches & virtual environments
+__pycache__/
+*.py[cod]
+*$py.class
+.venv/
+solaris-voice-env/
+
+# Node modules & logs
+node_modules/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# OS / Editor artifacts
+.DS_Store
+*.swp
+*.swo
+*~
+*.bak
+.cache/
+/tmp/

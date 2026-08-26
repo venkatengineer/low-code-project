@@ -1,0 +1,300 @@
+/* ==============================================================================
+ * 👽 ALIENWARE / EXTRATERRESTRIAL INDUSTRIAL SCI-FI WAYBAR THEME 🛸
+ * ============================================================================== */
+
+* {
+    border: none;
+    border-radius: 0;
+    font-family: "JetBrainsMono Nerd Font", "JetBrainsMono NF", monospace;
+    font-weight: 700;
+    font-size: 12px;
+    min-height: 0;
+    text-shadow: 0 0 4px rgba(0, 240, 255, 0.4);
+}
+
+window#waybar {
+    background-color: transparent;
+    color: #dff8f6;
+}
+
+tooltip {
+    background: rgba(6, 10, 15, 0.95);
+    border: 1px solid #00f0ff;
+    border-radius: 8px;
+    box-shadow: 0 0 16px rgba(0, 240, 255, 0.3), inset 0 0 8px rgba(0, 255, 136, 0.1);
+}
+
+tooltip label {
+    color: #dff8f6;
+    font-family: "JetBrainsMono Nerd Font", monospace;
+    padding: 6px 10px;
+}
+
+/* =============================================================================
+ * MODULE BASE CAPSULES (Biomechanical Armor Housing)
+ * ============================================================================= */
+
+#custom-alien-logo,
+#workspaces,
+#window,
+#clock,
+#custom-mpris-hud,
+#cpu,
+#memory,
+#disk,
+#disk.data,
+#network,
+#pulseaudio,
+#battery,
+#tray,
+#custom-power {
+    background: rgba(8, 13, 19, 0.88);
+    color: #dff8f6;
+    padding: 3px 12px;
+    margin: 3px 2px;
+    border-radius: 10px;
+    border: 1px solid rgba(0, 240, 255, 0.28);
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.6), inset 0 1px 0 rgba(255, 255, 255, 0.08);
+    transition: all 0.3s cubic-bezier(0.25, 1, 0.5, 1);
+}
+
+/* Hover Cybernetic Pulse */
+#custom-alien-logo:hover,
+#workspaces:hover,
+#window:hover,
+#clock:hover,
+#custom-mpris-hud:hover,
+#cpu:hover,
+#memory:hover,
+#disk:hover,
+#disk.data:hover,
+#network:hover,
+#pulseaudio:hover,
+#battery:hover,
+#custom-power:hover {
+    border-color: #00ff88;
+    box-shadow: 0 0 14px rgba(0, 255, 136, 0.45), inset 0 0 6px rgba(0, 240, 255, 0.2);
+}
+
+/* =============================================================================
+ * LEFT MODULES: Command Matrix & Workspaces
+ * ============================================================================= */
+
+#custom-alien-logo {
+    background: linear-gradient(135deg, rgba(0, 240, 255, 0.2), rgba(0, 255, 136, 0.15)), rgba(8, 13, 19, 0.95);
+    font-size: 16px;
+    padding: 0 12px;
+    border: 1px solid #00f0ff;
+    color: #00f0ff;
+    box-shadow: 0 0 12px rgba(0, 240, 255, 0.4);
+}
+
+#custom-alien-logo:hover {
+    background: linear-gradient(135deg, rgba(0, 255, 136, 0.3), rgba(0, 240, 255, 0.2)), rgba(8, 13, 19, 0.98);
+    border-color: #00ff88;
+    box-shadow: 0 0 18px rgba(0, 255, 136, 0.7);
+}
+
+#workspaces {
+    padding: 0 4px;
+    background: rgba(6, 10, 16, 0.92);
+}
+
+#workspaces button {
+    padding: 3px 8px;
+    margin: 2px 2px;
+    border-radius: 6px;
+    color: #5d7a8c;
+    background: transparent;
+    transition: all 0.25s ease;
+}
+
+#workspaces button:hover {
+    color: #00f0ff;
+    background: rgba(0, 240, 255, 0.12);
+    box-shadow: 0 0 8px rgba(0, 240, 255, 0.3);
+}
+
+#workspaces button.active,
+#workspaces button.focused {
+    color: #05080c;
+    background: linear-gradient(135deg, #00f0ff, #00ff88);
+    font-weight: 800;
+    box-shadow: 0 0 12px rgba(0, 240, 255, 0.6);
+}
+
+#workspaces button.urgent {
+    background: #ff2255;
+    color: #ffffff;
+    box-shadow: 0 0 12px #ff2255;
+}
+
+#window {
+    color: #00f0ff;
+    font-weight: 600;
+    border-color: rgba(0, 240, 255, 0.25);
+    background: rgba(6, 10, 16, 0.85);
+}
+
+/* =============================================================================
+ * CENTER MODULES: Chronometer & Audio Spectrum
+ * ============================================================================= */
+
+#clock {
+    background: linear-gradient(180deg, rgba(12, 20, 30, 0.95), rgba(6, 10, 16, 0.95));
+    border: 1px solid rgba(0, 240, 255, 0.4);
+    color: #00f0ff;
+    font-size: 12.5px;
+    letter-spacing: 0.5px;
+    box-shadow: 0 0 12px rgba(0, 240, 255, 0.25);
+}
+
+#custom-mpris-hud {
+    color: #00ff88;
+    border-color: rgba(0, 255, 136, 0.3);
+    font-weight: 700;
+}
+
+#custom-mpris-hud.Playing {
+    color: #00ff88;
+    border-color: #00ff88;
+    box-shadow: 0 0 12px rgba(0, 255, 136, 0.4), inset 0 0 4px rgba(0, 255, 136, 0.2);
+}
+
+#custom-mpris-hud.Paused {
+    color: #ffb703;
+    border-color: rgba(255, 183, 3, 0.5);
+    box-shadow: 0 0 8px rgba(255, 183, 3, 0.3);
+}
+
+#custom-mpris-hud.standby,
+#custom-mpris-hud.stopped {
+    color: #5d7a8c;
+    border-color: rgba(0, 240, 255, 0.22);
+}
+
+#custom-mpris-hud.standby:hover,
+#custom-mpris-hud.stopped:hover {
+    color: #00f0ff;
+    border-color: #00f0ff;
+    box-shadow: 0 0 14px rgba(0, 240, 255, 0.5), inset 0 0 6px rgba(0, 240, 255, 0.2);
+}
+
+/* =============================================================================
+ * RIGHT MODULES: Telemetry & Power Matrix
+ * ============================================================================= */
+
+#cpu {
+    color: #00ff88;
+    border-color: rgba(0, 255, 136, 0.25);
+}
+
+#cpu.warning {
+    color: #ffb703;
+    border-color: #ffb703;
+    box-shadow: 0 0 8px rgba(255, 183, 3, 0.4);
+}
+
+#cpu.critical {
+    color: #ff2255;
+    border-color: #ff2255;
+    box-shadow: 0 0 12px rgba(255, 34, 85, 0.6);
+}
+
+#memory {
+    color: #00f0ff;
+    border-color: rgba(0, 240, 255, 0.25);
+}
+
+#disk {
+    color: #a855f7;
+    border-color: rgba(168, 85, 247, 0.3);
+}
+
+#disk.data {
+    color: #c084fc;
+    border-color: rgba(192, 132, 252, 0.3);
+}
+
+#network {
+    color: #00ff88;
+    border-color: rgba(0, 255, 136, 0.25);
+}
+
+#network.disconnected {
+    color: #ff2255;
+    border-color: #ff2255;
+}
+
+#pulseaudio {
+    color: #00f0ff;
+    border-color: rgba(0, 240, 255, 0.25);
+}
+
+#pulseaudio.muted {
+    color: #ff5577;
+    border-color: #ff5577;
+}
+
+#battery {
+    color: #00ff88;
+    border-color: rgba(0, 255, 136, 0.25);
+}
+
+#battery.charging,
+#battery.plugged {
+    color: #00f0ff;
+    border-color: #00f0ff;
+    box-shadow: 0 0 10px rgba(0, 240, 255, 0.35);
+}
+
+#battery.warning:not(.charging) {
+    color: #ffb703;
+    border-color: #ffb703;
+}
+
+#battery.critical:not(.charging) {
+    color: #ff2255;
+    border-color: #ff2255;
+    animation-name: blink;
+    animation-duration: 0.8s;
+    animation-timing-function: linear;
+    animation-iteration-count: infinite;
+    animation-direction: alternate;
+}
+
+@keyframes blink {
+    to {
+        background-color: #ff2255;
+        color: #ffffff;
+    }
+}
+
+#tray {
+    padding: 0 8px;
+    background: rgba(6, 10, 16, 0.9);
+}
+
+#tray > .passive {
+    -gtk-icon-effect: dim;
+}
+
+#tray > .needs-attention {
+    -gtk-icon-effect: highlight;
+    background-color: #ff2255;
+}
+
+#custom-power {
+    background: linear-gradient(135deg, rgba(255, 34, 85, 0.2), rgba(8, 13, 19, 0.9));
+    color: #ff4d79;
+    border: 1px solid rgba(255, 34, 85, 0.4);
+    font-size: 14px;
+    padding: 0 10px;
+}
+
+#custom-power:hover {
+    background: #ff2255;
+    color: #ffffff;
+    box-shadow: 0 0 14px #ff2255;
+}
+

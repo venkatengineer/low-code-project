@@ -1,0 +1,201 @@
+// ==============================================================================
+// 👽 ALIENWARE / EXTRATERRESTRIAL INDUSTRIAL SCI-FI WAYBAR HUD 🛸
+// ==============================================================================
+{
+    "layer": "top",
+    "position": "top",
+    "height": 38,
+    "margin-top": 6,
+    "margin-left": 12,
+    "margin-right": 12,
+    "spacing": 8,
+
+    // Module Layout
+    "modules-left": [
+        "custom/alien-logo",
+        "niri/workspaces",
+        "niri/window"
+    ],
+    "modules-center": [
+        "clock",
+        "custom/mpris-hud"
+    ],
+    "modules-right": [
+        "cpu",
+        "memory",
+        "disk",
+        "disk#data",
+        "network",
+        "pulseaudio",
+        "battery",
+        "tray",
+        "custom/power"
+    ],
+
+    // =========================================================================
+    // Modules Left: Core Subsystems
+    // =========================================================================
+    "custom/alien-logo": {
+        "format": "⬡",
+        "tooltip": true,
+        "tooltip-format": "⟦ ALIEN TECH MATRIX // ONLINE ⟧\nClick: Application Matrix (Fuzzel)\nRight-Click: Task Nexus (Xenomon)",
+        "on-click": "fuzzel",
+        "on-click-right": "kitty --class=xenomon-hud -e xenomon"
+    },
+
+    "niri/workspaces": {
+        "format": "{icon}",
+        "format-icons": {
+            "1": "⬡ 1",
+            "2": "◈ 2",
+            "3": "⟡ 3",
+            "4": "◉ 4",
+            "5": "⌬ 5",
+            "6": "ᛯ 6",
+            "7": "⟁ 7",
+            "8": "⬢ 8",
+            "9": "⬡ 9",
+            "default": "⬡"
+        }
+    },
+
+    "niri/window": {
+        "format": "⟨ SUBSYSTEM // {title} ⟩",
+        "max-length": 45,
+        "rewrite": {
+            "(.*) — Mozilla Firefox": "NET_UPLINK // $1",
+            "kitty": "XENO_CONSOLE // ACTIVE",
+            "(.*) - Vivaldi": "VIVALDI_CORE // $1",
+            "^$": "SYSTEM IDLE // STANDBY"
+        },
+        "separate-outputs": true
+    },
+
+    // =========================================================================
+    // Modules Center: Chronometer & Telemetry
+    // =========================================================================
+    "clock": {
+        "interval": 1,
+        "format": "CHRONO // {:%Y.%m.%d ❖ %H:%M:%S}",
+        "format-alt": "SOL-3 TIME // {:%A, %B %d, %Y (%H:%M:%S)}",
+        "tooltip-format": "<big><tt>{calendar}</tt></big>",
+        "calendar": {
+            "mode": "month",
+            "mode-mon-col": 3,
+            "weeks-pos": "right",
+            "on-scroll": 1,
+            "format": {
+                "months": "<span color='#00f0ff'><b>{}</b></span>",
+                "days": "<span color='#dff8f6'><b>{}</b></span>",
+                "weeks": "<span color='#00ff88'><b>W{}</b></span>",
+                "weekdays": "<span color='#ffb703'><b>{}</b></span>",
+                "today": "<span color='#05080c' background='#00f0ff'><b>{}</b></span>"
+            }
+        }
+    },
+
+    "custom/mpris-hud": {
+        "exec": "aetheris-waybar status",
+        "return-type": "json",
+        "interval": 1,
+        "max-length": 40,
+        "on-click": "aetheris-waybar click",
+        "on-click-right": "aetheris-waybar toggle-hud",
+        "on-click-middle": "aetheris-waybar toggle-hud",
+        "on-scroll-up": "aetheris-waybar next",
+        "on-scroll-down": "aetheris-waybar prev"
+    },
+
+    // =========================================================================
+    // Modules Right: Hardware Telemetry Sensors
+    // =========================================================================
+    "cpu": {
+        "interval": 2,
+        "format": " {usage}%",
+        "tooltip": true,
+        "tooltip-format": "QUANTUM CORE LOAD: {usage}%\nCores: {max_frequency}GHz",
+        "on-click": "kitty --class=xenomon-hud -e xenomon"
+    },
+
+    "memory": {
+        "interval": 3,
+        "format": "󰍛 {used:0.1f}G",
+        "tooltip": true,
+        "tooltip-format": "BIOMEMORY MATRIX: {used:0.2f}GiB / {total:0.2f}GiB ({percentage}%)\nSwap: {swapUsed:0.2f}GiB / {swapTotal:0.2f}GiB",
+        "on-click": "kitty --class=xenomon-hud -e xenomon"
+    },
+
+    "disk": {
+        "interval": 30,
+        "format": "󰋊 / {percentage_used}%",
+        "path": "/",
+        "tooltip": true,
+        "tooltip-format": "STORAGE CORE [/]: {used} / {total} ({percentage_used}% utilized)",
+        "on-click": "nautilus /",
+        "on-click-right": "kitty --class=xenomon-hud -e xenomon"
+    },
+
+    "disk#data": {
+        "interval": 30,
+        "format": "󰋊 /data {percentage_used}%",
+        "path": "/data",
+        "tooltip": true,
+        "tooltip-format": "DATA MATRIX [/data]: {used} / {total} ({percentage_used}% utilized)",
+        "on-click": "nautilus /data",
+        "on-click-right": "kitty --class=xenomon-hud -e xenomon"
+    },
+
+    "network": {
+        "interval": 2,
+        "format-wifi": "󰤨 {essid} ⇡{bandwidthUpBytes} ⇣{bandwidthDownBytes}",
+        "format-ethernet": "󰛳 {ifname} ⇡{bandwidthUpBytes} ⇣{bandwidthDownBytes}",
+        "format-linked": "󰛳 {ifname} (NO_IP)",
+        "format-disconnected": "󰤭 OFFLINE",
+        "tooltip-format": "INTERFACE: {ifname}\nIP: {ipaddr}/{cidr}\nGATEWAY: {gwaddr}\nSIGNAL: {signalStrength}% ({signaldBm} dBm)",
+        "on-click": "kitty -e nmtui || nm-connection-editor"
+    },
+
+    "pulseaudio": {
+        "format": "{icon} {volume}%",
+        "format-muted": "󰝟 MUTED",
+        "format-icons": {
+            "headphone": "󰋋",
+            "hands-free": "󰋎",
+            "headset": "󰋎",
+            "phone": "󰏲",
+            "portable": "󰏲",
+            "car": "󰄋",
+            "default": ["󰕿", "󰖀", "󰕾"]
+        },
+        "scroll-step": 3,
+        "on-click": "pavucontrol",
+        "tooltip-format": "SONIC FREQUENCY: {volume}%\nPort: {desc}"
+    },
+
+    "battery": {
+        "interval": 10,
+        "states": {
+            "warning": 25,
+            "critical": 10
+        },
+        "format": "{icon} {capacity}%",
+        "format-charging": "󰂄 {capacity}%",
+        "format-plugged": "󰚥 {capacity}%",
+        "format-icons": ["󰂃", "󰁺", "󰁻", "󰁼", "󰁽", "󰁾", "󰁿", "󰂀", "󰂁", "󰂂", "󰁹"],
+        "tooltip-format": "ZERO-POINT CELL: {capacity}%\nHealth: {health}%\nPower Draw: {power}W\nTime Remaining: {time}"
+    },
+
+    "tray": {
+        "icon-size": 16,
+        "spacing": 10
+    },
+
+    "custom/power": {
+        "format": "⏻",
+        "tooltip": true,
+        "tooltip-format": "MOTHERSHIP LOCKDOWN // POWER MATRIX\nClick to lock system\nRight-click for shutdown options",
+        "on-click": "solaris-lock",
+        "on-click-right": "niri msg action quit"
+    }
+}
+

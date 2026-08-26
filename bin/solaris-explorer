@@ -1,0 +1,24 @@
+#!/usr/bin/env bash
+# ==============================================================================
+# 🛸 SOLARIS STARSHIP DATA NAVIGATOR LAUNCHER
+# High-Precision Aerospace Spacecraft File Explorer
+# ==============================================================================
+
+APP_DIR="${HOME}/.local/share/solaris-explorer"
+RUNTIME="${HOME}/.local/share/aetheris/runtime/electron"
+
+if [[ ! -f "$RUNTIME" ]]; then
+    RUNTIME=$(which electron 2>/dev/null || echo "")
+fi
+
+if [[ -z "$RUNTIME" || ! -x "$RUNTIME" ]]; then
+    echo "[Solaris Error] Electron runtime not found." >&2
+    exit 1
+fi
+
+FLAGS=(
+    "--ozone-platform=wayland"
+    "--enable-features=UseOzonePlatform"
+)
+
+exec "$RUNTIME" "${FLAGS[@]}" "$APP_DIR/electron/main.cjs" "$@"

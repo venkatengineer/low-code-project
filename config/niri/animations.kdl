@@ -1,0 +1,124 @@
+// ==============================================================================
+// 🛸 SOLARIS SPACECRAFT COMMAND DECK — MECHANICAL MOTION ARCHITECTURE
+// Deliberate, mechanical, crisp, and high-precision aerospace transitions
+// ==============================================================================
+
+animations {
+    // Window navigation and column switching:
+    // Heavy magnetic rail motion with high-precision inertial damping
+    horizontal-view-movement {
+        spring damping-ratio=0.90 stiffness=500 epsilon=0.0001
+    }
+
+    // Vertical station shift: deliberate atmospheric transit
+    workspace-switch {
+        spring damping-ratio=0.92 stiffness=420 epsilon=0.0001
+    }
+
+    // Moving windows between positions
+    window-movement {
+        spring damping-ratio=0.90 stiffness=500 epsilon=0.0001
+    }
+
+    // Window resize: smooth geometry calibration
+    window-resize {
+        spring damping-ratio=0.92 stiffness=520 epsilon=0.0001
+        custom-shader r#"
+            vec4 resize_color(vec3 coords_curr_geo, vec3 size_curr_geo) {
+                vec3 coords_next_geo = niri_curr_geo_to_next_geo * coords_curr_geo;
+                vec3 coords_crop = niri_geo_to_tex_next * coords_next_geo;
+                vec3 coords_stretch = niri_geo_to_tex_next * coords_curr_geo;
+                vec3 coords_stretch_prev = niri_geo_to_tex_prev * coords_curr_geo;
+
+                bool can_crop_by_x = niri_curr_geo_to_next_geo[0][0] <= 1.0;
+                bool can_crop_by_y = niri_curr_geo_to_next_geo[1][1] <= 1.0;
+                bool crop = can_crop_by_x && can_crop_by_y;
+
+                vec4 color;
+                if (crop) {
+                    if (coords_curr_geo.x < 0.0 || 1.0 < coords_curr_geo.x ||
+                        coords_curr_geo.y < 0.0 || 1.0 < coords_curr_geo.y) {
+                        color = vec4(0.0);
+                    } else {
+                        color = texture2D(niri_tex_next, coords_crop.st);
+                    }
+                } else {
+                    color = texture2D(niri_tex_next, coords_stretch.st);
+                    vec4 color_prev = texture2D(niri_tex_prev, coords_stretch_prev.st);
+                    color = mix(color_prev, color, niri_clamped_progress);
+                }
+                return color;
+            }
+        "#
+    }
+
+    // Window materialize: crisp aerospace console power-on
+    window-open {
+        duration-ms 200
+        curve "ease-out-expo"
+        custom-shader r#"
+            vec4 open_color(vec3 coords_geo, vec3 size_geo) {
+                float p = niri_clamped_progress;
+                float scale = 0.97 + 0.03 * p;
+                vec3 centered_geo = vec3((coords_geo.xy - vec2(0.5)) / scale + vec2(0.5), 1.0);
+
+                vec3 coords_tex = niri_geo_to_tex * centered_geo;
+                vec4 color = texture2D(niri_tex, coords_tex.st);
+
+                vec2 uv = coords_geo.xy;
+                if (uv.x < 0.0 || uv.x > 1.0 || uv.y < 0.0 || uv.y > 1.0) {
+                    return vec4(0.0);
+                }
+
+                // Precision telemetry sweep line (restrained cold cyan edge)
+                float sweep = (uv.y - p * 1.05) * 20.0;
+                float edge = clamp(1.0 - abs(sweep), 0.0, 1.0);
+                vec4 edge_glow = vec4(0.0, 0.9, 1.0, 1.0) * edge * 0.25 * (1.0 - p);
+
+                color.rgb = color.rgb + edge_glow.rgb;
+                color *= p;
+
+                return color;
+            }
+        "#
+    }
+
+    // Window dematerialize: instant console standby
+    window-close {
+        duration-ms 160
+        curve "ease-out-quad"
+        custom-shader r#"
+            vec4 close_color(vec3 coords_geo, vec3 size_geo) {
+                float p = niri_clamped_progress;
+                float inv_p = 1.0 - p;
+
+                float scale = 1.0 - 0.03 * p;
+                vec3 centered_geo = vec3((coords_geo.xy - vec2(0.5)) / scale + vec2(0.5), 1.0);
+
+                vec3 coords_tex = niri_geo_to_tex * centered_geo;
+                vec4 color = texture2D(niri_tex, coords_tex.st);
+
+                vec2 uv = coords_geo.xy;
+                if (uv.x < 0.0 || uv.x > 1.0 || uv.y < 0.0 || uv.y > 1.0) {
+                    return vec4(0.0);
+                }
+
+                color *= inv_p;
+                return color;
+            }
+        "#
+    }
+
+    // Overview zoom
+    overview-open-close {
+        spring damping-ratio=0.90 stiffness=480 epsilon=0.0001
+    }
+
+    config-notification-open-close {
+        spring damping-ratio=0.88 stiffness=600 epsilon=0.001
+    }
+
+    exit-confirmation-open-close {
+        spring damping-ratio=0.88 stiffness=500 epsilon=0.01
+    }
+}

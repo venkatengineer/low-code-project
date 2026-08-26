@@ -1,0 +1,527 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Solaris - Spacecraft Command Bridge</title>
+  <link rel="stylesheet" href="styles.css">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;600;700;800&family=Rajdhani:wght@500;600;700&family=Orbitron:wght@600;700;800;900&display=swap" rel="stylesheet">
+</head>
+<body class="cockpit-viewport">
+  <div id="cockpit-root" class="cockpit-framework">
+
+    <!-- ================================================================= -->
+    <!-- 1. TOP COCKPIT CANOPY CONTROL RAIL                                -->
+    <!-- ================================================================= -->
+    <header class="cockpit-top-rail">
+      <div class="rail-segment left">
+        <div class="sys-brand">
+          <span class="brand-glyph">⬡</span>
+          <div class="brand-text">
+            <span class="brand-title">SOLARIS OS</span>
+            <span class="brand-sub">v2.8.7 // ARCH LINUX</span>
+          </div>
+        </div>
+        <div class="rail-nav-tabs">
+          <button class="nav-tab active" title="Bridge Home" id="btn-tab-home">
+            <svg viewBox="0 0 24 24" width="16" height="16" stroke="currentColor" stroke-width="2" fill="none"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"></path><polyline points="9 22 9 12 15 12 15 22"></polyline></svg>
+          </button>
+          <button class="nav-tab" title="System Telemetry" id="btn-tab-telemetry">
+            <svg viewBox="0 0 24 24" width="16" height="16" stroke="currentColor" stroke-width="2" fill="none"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"></polyline></svg>
+          </button>
+          <button class="nav-tab" title="Niri Workspaces" id="btn-tab-workspaces">
+            <svg viewBox="0 0 24 24" width="16" height="16" stroke="currentColor" stroke-width="2" fill="none"><rect x="3" y="3" width="7" height="7"></rect><rect x="14" y="3" width="7" height="7"></rect><rect x="14" y="14" width="7" height="7"></rect><rect x="3" y="14" width="7" height="7"></rect></svg>
+          </button>
+          <button class="nav-tab" title="Storage Arrays" id="btn-tab-files">
+            <svg viewBox="0 0 24 24" width="16" height="16" stroke="currentColor" stroke-width="2" fill="none"><path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"></path></svg>
+          </button>
+        </div>
+      </div>
+
+      <div class="rail-segment center">
+        <div class="clock-hud-display">
+          <div class="clock-time" id="top-clock-time">21:42:00</div>
+          <div class="clock-date" id="top-clock-date">WED, 21 MAY 2026</div>
+        </div>
+      </div>
+
+      <div class="rail-segment right">
+        <div class="rail-actions">
+          <button class="action-glyph-btn" id="btn-top-brightness" title="Screen Brightness">
+            <svg viewBox="0 0 24 24" width="16" height="16" stroke="currentColor" stroke-width="2" fill="none"><circle cx="12" cy="12" r="5"></circle><line x1="12" y1="1" x2="12" y2="3"></line><line x1="12" y1="21" x2="12" y2="23"></line><line x1="4.22" y1="4.22" x2="5.64" y2="5.64"></line><line x1="18.36" y1="18.36" x2="19.78" y2="19.78"></line><line x1="1" y1="12" x2="3" y2="12"></line><line x1="21" y1="12" x2="23" y2="12"></line><line x1="4.22" y1="19.78" x2="5.64" y2="18.36"></line><line x1="18.36" y1="5.64" x2="19.78" y2="4.22"></line></svg>
+          </button>
+          <button class="action-glyph-btn" id="btn-top-audio" title="Audio Subsystem">
+            <svg viewBox="0 0 24 24" width="16" height="16" stroke="currentColor" stroke-width="2" fill="none"><polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"></polygon><path d="M19.07 4.93a10 10 0 0 1 0 14.14M15.54 8.46a5 5 0 0 1 0 7.07"></path></svg>
+          </button>
+          <button class="action-glyph-btn" id="btn-top-notif" title="Comms & Notifications">
+            <svg viewBox="0 0 24 24" width="16" height="16" stroke="currentColor" stroke-width="2" fill="none"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"></path><path d="M13.73 21a2 2 0 0 1-3.46 0"></path></svg>
+          </button>
+          <button class="action-glyph-btn danger" id="btn-top-power" title="System Lockdown">
+            <svg viewBox="0 0 24 24" width="16" height="16" stroke="currentColor" stroke-width="2" fill="none"><path d="M18.36 6.64a9 9 0 1 1-12.73 0"></path><line x1="12" y1="2" x2="12" y2="12"></line></svg>
+          </button>
+        </div>
+      </div>
+    </header>
+
+    <!-- ================================================================= -->
+    <!-- 2. MAIN COCKPIT DECK (3-Column Aerospace Layout)                  -->
+    <!-- ================================================================= -->
+    <main class="cockpit-deck-grid">
+
+      <!-- =============================================================== -->
+      <!-- LEFT COLUMN: EMBEDDED BULKHEAD INSTRUMENTATION                  -->
+      <!-- =============================================================== -->
+      <aside class="bulkhead-column left-bulkhead">
+
+        <!-- SYSTEM ENGINE (CPU SPEEDOMETER) -->
+        <div class="cockpit-bezel-module" id="mod-system-engine">
+          <div class="module-header">
+            <span class="module-title">SYSTEM ENGINE</span>
+            <span class="module-status-dot green"></span>
+          </div>
+          <div class="engine-gauge-wrap">
+            <div class="speedometer-container">
+              <svg class="speedometer-svg" viewBox="0 0 140 140" width="110" height="110">
+                <!-- Background track -->
+                <circle class="gauge-bg" cx="70" cy="70" r="54" stroke-dasharray="270 360" stroke-dashoffset="-45" />
+                <!-- Segmented tick marks -->
+                <circle class="gauge-ticks" cx="70" cy="70" r="54" stroke-dasharray="2 6" stroke-dashoffset="-45" />
+                <!-- Active green load arc -->
+                <circle class="gauge-bar green" id="svg-cpu-arc" cx="70" cy="70" r="54" stroke-dasharray="270 360" stroke-dashoffset="200" />
+              </svg>
+              <div class="speedometer-needle-pivot" id="cpu-needle"></div>
+              <div class="gauge-center-readout">
+                <span class="gauge-sub-label">CPU USAGE</span>
+                <span class="gauge-primary-val green" id="val-cpu-pct">18%</span>
+                <span class="gauge-extra-val" id="val-cpu-ghz">3.42 GHz</span>
+              </div>
+            </div>
+          </div>
+          <div class="engine-sparkline-row">
+            <span class="sparkline-scale">0</span>
+            <canvas id="canvas-cpu-sparkline" width="180" height="24"></canvas>
+            <span class="sparkline-scale">100</span>
+          </div>
+        </div>
+
+        <!-- MEMORY STATUS -->
+        <div class="cockpit-bezel-module" id="mod-memory-status">
+          <div class="module-header">
+            <span class="module-title">MEMORY STATUS</span>
+            <span class="module-status-dot green"></span>
+          </div>
+          <div class="memory-module-content">
+            <div class="memory-circular-gauge">
+              <svg viewBox="0 0 100 100" width="70" height="70">
+                <circle class="gauge-bg" cx="50" cy="50" r="38" stroke-dasharray="240 360" stroke-dashoffset="-60" />
+                <circle class="gauge-bar violet" id="svg-mem-arc" cx="50" cy="50" r="38" stroke-dasharray="240 360" stroke-dashoffset="150" />
+              </svg>
+              <div class="mem-gauge-text" id="val-mem-pct">33%</div>
+            </div>
+            <div class="memory-details-column">
+              <div class="mem-label-row">
+                <span class="mem-tag">RAM</span>
+                <span class="mem-val green" id="val-mem-sub-pct">33%</span>
+              </div>
+              <div class="mem-sub-info" id="val-mem-gb">5.11 / 15.5 GB</div>
+              <canvas id="canvas-mem-sparkline" width="110" height="20"></canvas>
+            </div>
+          </div>
+        </div>
+
+        <!-- GRAPHICS UNIT (GPU) -->
+        <div class="cockpit-bezel-module" id="mod-graphics-unit">
+          <div class="module-header">
+            <span class="module-title">GRAPHICS UNIT</span>
+            <span class="module-status-dot cyan"></span>
+          </div>
+          <div class="gpu-module-content">
+            <div class="gpu-circular-gauge">
+              <svg viewBox="0 0 100 100" width="70" height="70">
+                <circle class="gauge-bg" cx="50" cy="50" r="38" stroke-dasharray="240 360" stroke-dashoffset="-60" />
+                <circle class="gauge-bar green" id="svg-gpu-arc" cx="50" cy="50" r="38" stroke-dasharray="240 360" stroke-dashoffset="210" />
+              </svg>
+              <div class="gpu-gauge-text" id="val-gpu-pct">7%</div>
+            </div>
+            <div class="gpu-details-column">
+              <div class="gpu-label-row">
+                <span class="gpu-tag">GPU USAGE</span>
+                <span class="gpu-val green" id="val-gpu-sub-pct">7%</span>
+              </div>
+              <div class="gpu-sub-info" id="val-gpu-model">NVIDIA RTX 5050</div>
+              <div class="gpu-temp-row">
+                <span id="val-gpu-temp">42°C</span>
+                <span id="val-gpu-vram">1.3 / 8.0 GB</span>
+              </div>
+              <canvas id="canvas-gpu-sparkline" width="110" height="16"></canvas>
+            </div>
+          </div>
+        </div>
+
+        <!-- STORAGE DRIVE -->
+        <div class="cockpit-bezel-module" id="mod-storage-drive">
+          <div class="module-header">
+            <span class="module-title">STORAGE DRIVE</span>
+            <span class="module-status-dot green"></span>
+          </div>
+          <div class="storage-list">
+            <div class="storage-item">
+              <div class="storage-header-row">
+                <span class="storage-name" id="val-disk1-name">SYSTEM (/)</span>
+                <span class="storage-pct green" id="val-disk1-pct">48%</span>
+              </div>
+              <div class="storage-size-sub" id="val-disk1-sub">15.7 GB / 52.7 GB</div>
+              <div class="storage-progress-bar">
+                <div class="storage-progress-fill green" id="bar-disk1" style="width: 48%;"></div>
+              </div>
+            </div>
+            <div class="storage-item">
+              <div class="storage-header-row">
+                <span class="storage-name" id="val-disk2-name">BUFFER (SWAP)</span>
+                <span class="storage-pct cyan" id="val-disk2-pct">0%</span>
+              </div>
+              <div class="storage-size-sub" id="val-disk2-sub">0.0 GB / 4.0 GB</div>
+              <div class="storage-progress-bar">
+                <div class="storage-progress-fill cyan" id="bar-disk2" style="width: 1%;"></div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+      </aside>
+
+      <!-- =============================================================== -->
+      <!-- CENTER ARENA: 3D HOLOGRAPHIC RADAR & SCANNING SYSTEMS           -->
+      <!-- =============================================================== -->
+      <section class="cockpit-center-arena">
+
+        <!-- TOP FLOATING HOLOGRAPHIC LAUNCH DOCK -->
+        <div class="holo-quick-dock">
+          <button class="holo-dock-btn" id="dock-btn-files">
+            <div class="dock-btn-icon">
+              <svg viewBox="0 0 24 24" width="18" height="18" stroke="currentColor" stroke-width="2" fill="none"><path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"></path></svg>
+            </div>
+            <span class="dock-btn-label">FILES</span>
+          </button>
+          <button class="holo-dock-btn" id="dock-btn-terminal">
+            <div class="dock-btn-icon">
+              <svg viewBox="0 0 24 24" width="18" height="18" stroke="currentColor" stroke-width="2" fill="none"><polyline points="4 17 10 11 4 5"></polyline><line x1="12" y1="19" x2="20" y2="19"></line></svg>
+            </div>
+            <span class="dock-btn-label">TERMINAL</span>
+          </button>
+          <button class="holo-dock-btn" id="dock-btn-browser">
+            <div class="dock-btn-icon">
+              <svg viewBox="0 0 24 24" width="18" height="18" stroke="currentColor" stroke-width="2" fill="none"><circle cx="12" cy="12" r="10"></circle><polygon points="16.24 7.76 14.12 14.12 7.76 16.24 9.88 9.88 16.24 7.76"></polygon></svg>
+            </div>
+            <span class="dock-btn-label">BROWSER</span>
+          </button>
+          <button class="holo-dock-btn" id="dock-btn-settings">
+            <div class="dock-btn-icon">
+              <svg viewBox="0 0 24 24" width="18" height="18" stroke="currentColor" stroke-width="2" fill="none"><circle cx="12" cy="12" r="3"></circle><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"></path></svg>
+            </div>
+            <span class="dock-btn-label">SETTINGS</span>
+          </button>
+        </div>
+
+        <!-- TRI-PANEL RADAR ARENA -->
+        <div class="holographic-scanner-stage">
+
+          <!-- LEFT HOLOGRAPHIC SCANNER: WI-FI NETWORKS -->
+          <div class="holo-scanner-panel left-scanner" id="panel-wifi-scanner">
+            <div class="holo-panel-header">
+              <div class="panel-header-title">
+                <span class="holo-tag">NETWORK SCANNER</span>
+                <span class="holo-sub-tag">Wi-Fi Networks</span>
+              </div>
+            </div>
+            <div class="holo-mini-radar-wrap">
+              <canvas id="canvas-wifi-radar" width="110" height="110"></canvas>
+            </div>
+            <div class="holo-networks-list" id="wifi-networks-container">
+              <div class="holo-net-row active">
+                <span class="net-ssid">SOLARIS_5G</span>
+                <span class="net-signal green">-38 dBm</span>
+              </div>
+              <div class="holo-net-row">
+                <span class="net-ssid">Nexus_7_Pro</span>
+                <span class="net-signal">-53 dBm</span>
+              </div>
+              <div class="holo-net-row">
+                <span class="net-ssid">Galaxy_M53A2</span>
+                <span class="net-signal">-61 dBm</span>
+              </div>
+              <div class="holo-net-row">
+                <span class="net-ssid">Ext_Station_04</span>
+                <span class="net-signal">-74 dBm</span>
+              </div>
+            </div>
+            <div class="holo-scanner-footer">
+              <span class="scan-pulse-text">SCANNING...</span>
+              <span class="scan-signal-icons">⬡ ⬢ ⬡</span>
+            </div>
+          </div>
+
+          <!-- CENTRAL 3D HOLOGRAPHIC RADAR EMITTER -->
+          <div class="central-3d-radar-platform" id="radar-3d-interactive">
+            <div class="radar-viewport">
+              <canvas id="canvas-3d-radar" width="340" height="340"></canvas>
+              <div class="radar-emitter-ring"></div>
+            </div>
+          </div>
+
+          <!-- RIGHT HOLOGRAPHIC SCANNER: BLUETOOTH DEVICES -->
+          <div class="holo-scanner-panel right-scanner" id="panel-bluetooth-scanner">
+            <div class="holo-panel-header">
+              <div class="panel-header-title">
+                <span class="holo-tag">BLUETOOTH SCANNER</span>
+                <span class="holo-sub-tag">Nearby Devices</span>
+              </div>
+            </div>
+            <div class="holo-mini-radar-wrap">
+              <canvas id="canvas-bt-radar" width="110" height="110"></canvas>
+            </div>
+            <div class="holo-networks-list" id="bt-devices-container">
+              <div class="holo-net-row active">
+                <span class="net-ssid">WH-1000XM4</span>
+                <span class="net-signal green">-50 dBm</span>
+              </div>
+              <div class="holo-net-row">
+                <span class="net-ssid">AirPods Pro</span>
+                <span class="net-signal">-58 dBm</span>
+              </div>
+              <div class="holo-net-row">
+                <span class="net-ssid">boAt Rockerz 450</span>
+                <span class="net-signal">-62 dBm</span>
+              </div>
+              <div class="holo-net-row">
+                <span class="net-ssid">OnePlus 11R</span>
+                <span class="net-signal">-71 dBm</span>
+              </div>
+            </div>
+            <div class="holo-scanner-footer">
+              <span class="scan-pulse-text">SCANNING...</span>
+              <span class="scan-signal-icons">⚡ ⬡ ⚡</span>
+            </div>
+          </div>
+
+        </div>
+
+      </section>
+
+      <!-- =============================================================== -->
+      <!-- RIGHT COLUMN: POWER CORE & NIRI WORKSPACES                      -->
+      <!-- =============================================================== -->
+      <aside class="bulkhead-column right-bulkhead">
+
+        <!-- POWER CORE -->
+        <div class="cockpit-bezel-module" id="mod-power-core">
+          <div class="module-header">
+            <span class="module-title">POWER CORE</span>
+            <span class="module-status-dot green"></span>
+          </div>
+          <div class="power-core-content">
+            <div class="power-circular-gauge">
+              <svg viewBox="0 0 140 140" width="110" height="110">
+                <circle class="gauge-bg" cx="70" cy="70" r="52" stroke-dasharray="270 360" stroke-dashoffset="-45" />
+                <circle class="gauge-bar cyan" id="svg-power-arc" cx="70" cy="70" r="52" stroke-dasharray="270 360" stroke-dashoffset="60" />
+                <circle class="gauge-inner-arc green" cx="70" cy="70" r="44" stroke-dasharray="270 360" stroke-dashoffset="80" />
+              </svg>
+              <div class="power-gauge-text">
+                <span class="power-pct green" id="val-power-pct">72%</span>
+                <span class="power-state" id="val-power-state">Discharging</span>
+              </div>
+            </div>
+            <div class="power-details-list">
+              <div class="power-detail-row">
+                <span class="pwr-icon green">⚡</span>
+                <span class="pwr-label" id="val-ac-status">AC Adapter: Connected</span>
+              </div>
+              <div class="power-profile-section">
+                <div class="pwr-sub-label">POWER PROFILE</div>
+                <div class="power-profile-selector">
+                  <button class="prof-pill-btn" data-profile="powersave" id="pbtn-powersave">SAVER</button>
+                  <button class="prof-pill-btn active" data-profile="balanced" id="pbtn-balanced">BALANCED</button>
+                  <button class="prof-pill-btn" data-profile="performance" id="pbtn-performance">PERF</button>
+                </div>
+              </div>
+              <div class="power-detail-row health">
+                <span class="pwr-icon">♥</span>
+                <span class="pwr-label">BATTERY HEALTH: <b class="green" id="val-bat-health">GOOD</b></span>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- WORKSPACES MODULE -->
+        <div class="cockpit-bezel-module" id="mod-workspaces">
+          <div class="module-header">
+            <span class="module-title">WORKSPACES</span>
+            <span class="module-status-dot green"></span>
+          </div>
+          <div class="workspaces-channels-list" id="workspaces-list-container">
+            <div class="workspace-channel-row active" data-ws-id="1">
+              <span class="ws-num">01</span>
+              <span class="ws-name">TERMINAL</span>
+              <span class="ws-indicator active">●</span>
+            </div>
+            <div class="workspace-channel-row" data-ws-id="2">
+              <span class="ws-num">02</span>
+              <span class="ws-name">DEVELOPMENT</span>
+              <span class="ws-indicator active">●</span>
+            </div>
+            <div class="workspace-channel-row" data-ws-id="3">
+              <span class="ws-num">03</span>
+              <span class="ws-name">BROWSER</span>
+              <span class="ws-indicator">○</span>
+            </div>
+            <div class="workspace-channel-row" data-ws-id="4">
+              <span class="ws-num">04</span>
+              <span class="ws-name">MEDIA</span>
+              <span class="ws-indicator">○</span>
+            </div>
+            <div class="workspace-channel-row" data-ws-id="5">
+              <span class="ws-num">05</span>
+              <span class="ws-name">EMPTY</span>
+              <span class="ws-indicator">○</span>
+            </div>
+          </div>
+          <div class="workspaces-footer-status">
+            <span class="ws-active-info" id="val-niri-windows">ACTIVE: 2 WINDOWS</span>
+            <div class="ws-layout-icons">
+              <span class="layout-box active">⊞</span>
+              <span class="layout-box">⊟</span>
+            </div>
+          </div>
+        </div>
+
+      </aside>
+
+    </main>
+
+    <!-- ================================================================= -->
+    <!-- 3. LOWER COCKPIT CONSOLE (Environment, Speedometer, Quick Access) -->
+    <!-- ================================================================= -->
+    <footer class="cockpit-bottom-console">
+
+      <!-- LEFT: ENVIRONMENT METRICS -->
+      <div class="bottom-console-segment env-speedometer-panel">
+        <div class="env-metrics-box">
+          <div class="env-box-title">ENVIRONMENT</div>
+          <div class="env-item">
+            <span class="env-glyph">🌡</span>
+            <div class="env-text">
+              <span class="env-lbl">TEMP</span>
+              <span class="env-val" id="val-env-temp">46°C</span>
+            </div>
+          </div>
+          <div class="env-item">
+            <span class="env-glyph">⚙</span>
+            <div class="env-text">
+              <span class="env-lbl">FAN SPEED</span>
+              <span class="env-val" id="val-env-fan">2400 RPM</span>
+            </div>
+          </div>
+          <div class="env-item">
+            <span class="env-glyph">⌬</span>
+            <div class="env-text">
+              <span class="env-lbl">STATUS</span>
+              <span class="env-val green">NOMINAL</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- SPACESHIP HOLOGRAPHIC WIREFRAME -->
+        <div class="spaceship-wireframe-wrap">
+          <canvas id="canvas-ship-thruster" width="130" height="90"></canvas>
+        </div>
+
+        <!-- CENTER SPACECRAFT SPEEDOMETER GAUGE -->
+        <div class="center-speedometer-box">
+          <div class="engine-dial-wrapper">
+            <svg class="engine-dial-svg" viewBox="0 0 180 110" width="160" height="90">
+              <path class="dial-track" d="M 20 90 A 70 70 0 0 1 160 90" fill="none" stroke="rgba(0, 255, 102, 0.15)" stroke-width="12" />
+              <path class="dial-fill" id="svg-speed-fill" d="M 20 90 A 70 70 0 0 1 160 90" fill="none" stroke="#00ff66" stroke-width="12" stroke-dasharray="220" stroke-dashoffset="70" />
+            </svg>
+            <div class="engine-dial-readout">
+              <span class="engine-ghz" id="val-engine-ghz">3.42</span>
+              <span class="engine-unit">GHz</span>
+              <span class="engine-tag">CPU SPEED</span>
+            </div>
+            <div class="engine-scale-marks">
+              <span>0.0</span>
+              <span>5.0</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- TELEMETRY WAVEFORM OSCILLOSCOPE -->
+        <div class="telemetry-waveform-box">
+          <canvas id="canvas-telemetry-waveform" width="140" height="70"></canvas>
+        </div>
+      </div>
+
+      <!-- RIGHT: QUICK ACCESS CONTROL MATRIX -->
+      <div class="bottom-console-segment quick-access-panel">
+        <div class="quick-access-title">QUICK ACCESS</div>
+        <div class="quick-access-grid">
+          <button class="qa-btn" id="qa-btn-lock" title="Lockdown">
+            <span class="qa-icon">🔒</span>
+            <span class="qa-label">LOCK</span>
+          </button>
+          <button class="qa-btn" id="qa-btn-reboot" title="System Reboot">
+            <span class="qa-icon">🔄</span>
+            <span class="qa-label">REBOOT</span>
+          </button>
+          <button class="qa-btn danger" id="qa-btn-shutdown" title="System Poweroff">
+            <span class="qa-icon">⚡</span>
+            <span class="qa-label">SHUTDOWN</span>
+          </button>
+          <button class="qa-btn" id="qa-btn-logout" title="Session Exit">
+            <span class="qa-icon">⏻</span>
+            <span class="qa-label">LOG OUT</span>
+          </button>
+          <button class="qa-btn" id="qa-btn-notes" title="Mission Notes">
+            <span class="qa-icon">📝</span>
+            <span class="qa-label">NOTES</span>
+          </button>
+          <button class="qa-btn" id="qa-btn-calc" title="Calculator">
+            <span class="qa-icon">🧮</span>
+            <span class="qa-label">CALCULATOR</span>
+          </button>
+          <button class="qa-btn" id="qa-btn-screenshot" title="Screen Capture">
+            <span class="qa-icon">📷</span>
+            <span class="qa-label">SCREENSHOT</span>
+          </button>
+          <button class="qa-btn" id="qa-btn-files" title="File Matrix">
+            <span class="qa-icon">📁</span>
+            <span class="qa-label">FILES</span>
+          </button>
+        </div>
+      </div>
+
+    </footer>
+
+    <!-- ================================================================= -->
+    <!-- 4. BOTTOM AEROSPACE STATUS DOCK RAIL                              -->
+    <!-- ================================================================= -->
+    <div class="bottom-aerospace-dock">
+      <div class="dock-left-telemetry">
+        <span class="dock-icon">⬡</span>
+        <span class="dock-stat" id="dock-stat-uptime">UPTIME 00:42:15</span>
+      </div>
+      <div class="dock-center-emblem" id="btn-dock-emblem" title="Command Bridge Status">
+        <span class="alien-emblem-glyph">👽</span>
+      </div>
+      <div class="dock-right-telemetry">
+        <span class="dock-stat" id="dock-stat-status">ALL SYSTEMS ONLINE</span>
+        <span class="dock-icon green">●</span>
+      </div>
+    </div>
+
+  </div>
+
+  <script src="dashboard.js"></script>
+</body>
+</html>

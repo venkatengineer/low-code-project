@@ -1,0 +1,75 @@
+#!/usr/bin/env python3
+import sys
+import random
+
+ALIEN_GLYPHS = ["⟁", "ᛯ", "⏣", "⌬", "⎔", "⍟", "ᚷ", "ᛞ", "⍹", "⍾", "⎎", "⍎", "⍕", "⍱", "⍲", "⍧", "⍪", "⍫", "⍰", "᚛", "᚜"]
+GREEN = "\033[1;38;2;57;255;20m"
+CYAN = "\033[1;38;2;0;240;255m"
+DARK_CYAN = "\033[38;2;0;160;180m"
+PURPLE = "\033[1;38;2;200;80;255m"
+YELLOW = "\033[1;38;2;255;230;0m"
+RESET = "\033[0m"
+
+ASCII_ART = """
+               :+%@@@@@#+:.              
+            :@@@@@@@@@@@@@@@:            
+          .%@@@@@@@@@@@@@@@@@%.          
+         .@@@@@@@@@@@@@@@@@@@@@.         
+         %@@@@@@@@@@@@@@@@@@@@@@.        
+        -@@@@@@@@@@@@@@@@@@@@@@@:        
+       .@@@@@@@@@@@@@@@@@@@@@@@@%.       
+       .@@@@@@@@@@@@@@@@@@@@@@@@@.       
+       :@@@@@@@@@@@@@@@@@@@@@@@@@:       
+       :@@@@@@@@@@@@@@@@@@@@@@@@@:       
+       :@==*@@@@@@@@@@@@@@@@@*==@:       
+       .@-    .%@@@@@@@@@%.    =@.       
+        =@.     -@@@@@@@-     .@-        
+         #%.     -@@@@@:     .%*.        
+          *@+.    =@@@=    .*@*          
+           =@@@#=..@@%..=#@@@=           
+            :@@@@@@@@@@@@@@@:            
+             .%@@@@@@@@@@@%.             
+               -@@@@@@@@@:.              
+                 :#@@@#:                 
+"""
+
+def alienize(text):
+    return "".join(random.choice(ALIEN_GLYPHS) if c.isalnum() else c for c in text)
+
+def main():
+    if len(sys.argv) > 1:
+        message = " ".join(sys.argv[1:])
+    else:
+        if sys.stdin.isatty():
+            message = "Quantum frequencies aligned. Mothership listening..."
+        else:
+            message = sys.stdin.read().strip()
+            if not message:
+                message = "Subspace transmission received."
+
+    alien_cipher = alienize(message)
+    content_len = max(len(message), len(alien_cipher), 36)
+    box_width = content_len + 4
+
+    bars = [" ", "▂", "▃", "▄", "▅", "▆", "▇", "█"]
+    eq_wave = "".join(random.choice(bars) for _ in range(16))
+
+    print(f"\n{DARK_CYAN}╭{'─' * (box_width - 2)}╮{RESET}")
+    print(f"{DARK_CYAN}│{RESET}  {PURPLE}{alien_cipher:<{content_len}}{RESET}  {DARK_CYAN}│{RESET}  {YELLOW}📡 [XENO-CIPHER]{RESET}")
+    print(f"{DARK_CYAN}├{'─' * (box_width - 2)}┤{RESET}")
+    print(f"{DARK_CYAN}│{RESET}  {GREEN}{message:<{content_len}}{RESET}  {DARK_CYAN}│{RESET}  {GREEN}🔊 [DECRYPTED VOCAL]{RESET}")
+    print(f"{DARK_CYAN}╰┬{'─' * (box_width - 3)}╯{RESET}")
+    print(f"{DARK_CYAN} │{RESET}  {CYAN}EQ SPECTRUM:{RESET} {GREEN}{eq_wave}{RESET}")
+    print(f"{DARK_CYAN} ╰─►{RESET}")
+
+    lines = [l for l in ASCII_ART.splitlines() if l.strip()]
+    for i, line in enumerate(lines):
+        t = i / (len(lines) - 1)
+        r = int(57 * (1 - t))
+        g = int(255 - (15 * t))
+        b = int(20 + (235 * t))
+        print(f"\033[38;2;{r};{g};{b}m{line}\033[0m")
+    print()
+
+if __name__ == "__main__":
+    main()

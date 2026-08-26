@@ -1,0 +1,25 @@
+#!/usr/bin/env bash
+# Solaris Spacecraft Cockpit Dashboard Launcher for Linux & Niri
+set -e
+
+if [[ "$1" == "--kill" || "$1" == "--quit" || "$1" == "--stop" ]]; then
+    pkill -f "solaris-dashboard/electron/main.cjs" 2>/dev/null || true
+    echo "[Solaris] Stopped dashboard overlay."
+    exit 0
+fi
+
+APP_DIR="${HOME}/.local/share/solaris-dashboard"
+RUNTIME="${HOME}/.local/share/aetheris/runtime/electron"
+
+if [[ ! -f "$RUNTIME" ]]; then
+    echo "[Solaris Error] Electron runtime not found at $RUNTIME" >&2
+    exit 1
+fi
+
+OZONE_FLAGS=(
+    "--ozone-platform-hint=auto"
+    "--enable-features=UseOzonePlatform,WaylandWindowDecorations"
+    "--disable-gpu-sandbox"
+)
+
+exec "$RUNTIME" "${OZONE_FLAGS[@]}" "$APP_DIR/electron/main.cjs" "$@"

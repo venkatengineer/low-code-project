@@ -1,0 +1,1146 @@
+/* ==============================================================================
+ * 🛸 SOLARIS SPACECRAFT COMMAND BRIDGE — PHYSICAL COCKPIT HUD STYLING
+ * Dominant: Green · Secondary: Cyan / Violet · Metallic Graphite Foundations
+ * ============================================================================== */
+
+:root {
+  --color-bg-base: #03060a;
+  --color-panel-bg: rgba(6, 12, 19, 0.88);
+  --color-panel-bg-solid: #08101a;
+  --color-bezel-border: rgba(0, 255, 102, 0.35);
+  --color-bezel-border-glow: rgba(0, 255, 102, 0.55);
+  
+  --color-green-primary: #00ff66;
+  --color-green-soft: #00dd55;
+  --color-green-glow: rgba(0, 255, 102, 0.45);
+  --color-green-dim: rgba(0, 255, 102, 0.15);
+
+  --color-cyan-tech: #00f0ff;
+  --color-cyan-glow: rgba(0, 240, 255, 0.45);
+  --color-cyan-dim: rgba(0, 240, 255, 0.15);
+
+  --color-violet-accent: #a855f7;
+  --color-violet-glow: rgba(168, 85, 247, 0.4);
+
+  --color-text-main: #e6f8f5;
+  --color-text-dim: #8ba2b0;
+  --color-text-muted: #4a6372;
+  
+  --font-mono: "JetBrains Mono", monospace;
+  --font-tech: "Rajdhani", sans-serif;
+  --font-hud: "Orbitron", sans-serif;
+}
+
+* {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+  user-select: none;
+}
+
+body.cockpit-viewport {
+  width: 100vw;
+  height: 100vh;
+  overflow: hidden;
+  background: #03060a url('../../assets/wallpapers/spacecraft_cockpit_deck.jpg') no-repeat center center / cover;
+  color: var(--color-text-main);
+  font-family: var(--font-tech);
+  -webkit-font-smoothing: antialiased;
+}
+
+.cockpit-framework {
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  width: 100vw;
+  height: 100vh;
+  padding: 8px 14px 8px 14px;
+  position: relative;
+  overflow: hidden;
+  background: radial-gradient(circle at 50% 30%, rgba(0, 255, 102, 0.04) 0%, transparent 70%);
+}
+
+/* =============================================================================
+ * 1. TOP COCKPIT CANOPY CONTROL RAIL
+ * ============================================================================= */
+.cockpit-top-rail {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  height: 38px;
+  background: linear-gradient(180deg, rgba(10, 18, 28, 0.96) 0%, rgba(4, 8, 14, 0.96) 100%);
+  border: 1px solid rgba(0, 255, 102, 0.3);
+  border-bottom: 2px solid var(--color-green-primary);
+  border-radius: 6px;
+  padding: 0 16px;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.85), inset 0 1px 0 rgba(255, 255, 255, 0.1);
+  z-index: 100;
+  backdrop-filter: blur(8px);
+}
+
+.rail-segment {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+}
+
+.sys-brand {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.brand-glyph {
+  color: var(--color-green-primary);
+  font-size: 18px;
+  text-shadow: 0 0 8px var(--color-green-glow);
+}
+
+.brand-title {
+  font-family: var(--font-hud);
+  font-size: 13px;
+  font-weight: 800;
+  letter-spacing: 1.5px;
+  color: #ffffff;
+}
+
+.brand-sub {
+  font-family: var(--font-mono);
+  font-size: 10px;
+  color: var(--color-green-primary);
+  letter-spacing: 0.5px;
+  margin-left: 6px;
+}
+
+.rail-nav-tabs {
+  display: flex;
+  gap: 6px;
+  margin-left: 12px;
+  padding-left: 12px;
+  border-left: 1px solid rgba(0, 255, 102, 0.2);
+}
+
+.nav-tab {
+  background: rgba(14, 25, 38, 0.85);
+  border: 1px solid rgba(0, 255, 102, 0.2);
+  color: var(--color-text-dim);
+  border-radius: 4px;
+  padding: 5px 9px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.2s ease;
+}
+
+.nav-tab:hover,
+.nav-tab.active {
+  background: rgba(0, 255, 102, 0.2);
+  border-color: var(--color-green-primary);
+  color: var(--color-green-primary);
+  box-shadow: 0 0 10px var(--color-green-dim);
+}
+
+.clock-hud-display {
+  text-align: center;
+}
+
+.clock-time {
+  font-family: var(--font-mono);
+  font-size: 16px;
+  font-weight: 800;
+  letter-spacing: 2px;
+  color: #ffffff;
+  text-shadow: 0 0 10px rgba(0, 255, 102, 0.6);
+}
+
+.clock-date {
+  font-family: var(--font-tech);
+  font-size: 10px;
+  font-weight: 600;
+  letter-spacing: 1.2px;
+  color: var(--color-green-primary);
+  text-transform: uppercase;
+}
+
+.rail-actions {
+  display: flex;
+  gap: 8px;
+}
+
+.action-glyph-btn {
+  background: rgba(10, 18, 26, 0.85);
+  border: 1px solid rgba(0, 255, 102, 0.25);
+  color: var(--color-text-dim);
+  border-radius: 4px;
+  padding: 5px 8px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.2s ease;
+}
+
+.action-glyph-btn:hover {
+  border-color: var(--color-green-primary);
+  color: var(--color-green-primary);
+  box-shadow: 0 0 8px var(--color-green-dim);
+}
+
+.action-glyph-btn.danger:hover {
+  border-color: #ff3366;
+  color: #ff3366;
+  box-shadow: 0 0 8px rgba(255, 51, 102, 0.4);
+}
+
+/* =============================================================================
+ * 2. MAIN COCKPIT DECK (3 Columns)
+ * ============================================================================= */
+.cockpit-deck-grid {
+  display: grid;
+  grid-template-columns: 270px 1fr 270px;
+  gap: 16px;
+  height: calc(100vh - 195px);
+  margin-top: 6px;
+  position: relative;
+}
+
+/* Bulkhead Module Housings */
+.bulkhead-column {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  height: 100%;
+}
+
+.cockpit-bezel-module {
+  background: linear-gradient(145deg, rgba(8, 16, 26, 0.94) 0%, rgba(4, 9, 15, 0.96) 100%);
+  border: 1px solid rgba(0, 255, 102, 0.25);
+  border-left: 3px solid var(--color-green-primary);
+  border-radius: 8px;
+  padding: 10px 12px;
+  box-shadow: 0 4px 18px rgba(0, 0, 0, 0.75), inset 0 0 12px rgba(0, 255, 102, 0.04);
+  position: relative;
+  overflow: hidden;
+  backdrop-filter: blur(8px);
+}
+
+.right-bulkhead .cockpit-bezel-module {
+  border-left: 1px solid rgba(0, 255, 102, 0.25);
+  border-right: 3px solid var(--color-green-primary);
+}
+
+.module-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  border-bottom: 1px solid rgba(0, 255, 102, 0.15);
+  padding-bottom: 4px;
+  margin-bottom: 8px;
+}
+
+.module-title {
+  font-family: var(--font-hud);
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 1px;
+  color: #dff8f6;
+}
+
+.module-status-dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+}
+
+.module-status-dot.green {
+  background: var(--color-green-primary);
+  box-shadow: 0 0 8px var(--color-green-primary);
+}
+
+.module-status-dot.cyan {
+  background: var(--color-cyan-tech);
+  box-shadow: 0 0 8px var(--color-cyan-tech);
+}
+
+/* Speedometer CPU Gauge */
+.engine-gauge-wrap {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  position: relative;
+}
+
+.speedometer-container {
+  position: relative;
+  width: 110px;
+  height: 110px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.speedometer-svg {
+  transform: rotate(-90deg);
+}
+
+.gauge-bg {
+  fill: none;
+  stroke: rgba(0, 255, 102, 0.12);
+  stroke-width: 8;
+  stroke-linecap: round;
+}
+
+.gauge-ticks {
+  fill: none;
+  stroke: rgba(0, 255, 102, 0.3);
+  stroke-width: 4;
+}
+
+.gauge-bar {
+  fill: none;
+  stroke-width: 8;
+  stroke-linecap: round;
+  transition: stroke-dashoffset 0.4s ease;
+}
+
+.gauge-bar.green {
+  stroke: var(--color-green-primary);
+  filter: drop-shadow(0 0 4px var(--color-green-glow));
+}
+
+.gauge-bar.cyan {
+  stroke: var(--color-cyan-tech);
+  filter: drop-shadow(0 0 4px var(--color-cyan-glow));
+}
+
+.gauge-bar.violet {
+  stroke: var(--color-violet-accent);
+  filter: drop-shadow(0 0 4px var(--color-violet-glow));
+}
+
+.gauge-center-readout {
+  position: absolute;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+}
+
+.gauge-sub-label {
+  font-family: var(--font-tech);
+  font-size: 9px;
+  font-weight: 700;
+  color: var(--color-text-dim);
+  letter-spacing: 0.5px;
+}
+
+.gauge-primary-val {
+  font-family: var(--font-mono);
+  font-size: 18px;
+  font-weight: 800;
+  letter-spacing: 0.5px;
+  line-height: 1.1;
+}
+
+.gauge-primary-val.green {
+  color: #ffffff;
+  text-shadow: 0 0 8px var(--color-green-glow);
+}
+
+.gauge-extra-val {
+  font-family: var(--font-mono);
+  font-size: 10px;
+  color: var(--color-green-primary);
+}
+
+.engine-sparkline-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-top: 4px;
+  font-family: var(--font-mono);
+  font-size: 9px;
+  color: var(--color-text-muted);
+}
+
+/* Memory Status Module */
+.memory-module-content,
+.gpu-module-content {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.memory-circular-gauge,
+.gpu-circular-gauge {
+  position: relative;
+  width: 70px;
+  height: 70px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.mem-gauge-text,
+.gpu-gauge-text {
+  position: absolute;
+  font-family: var(--font-mono);
+  font-size: 14px;
+  font-weight: 800;
+  color: #ffffff;
+}
+
+.memory-details-column,
+.gpu-details-column {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.mem-label-row,
+.gpu-label-row {
+  display: flex;
+  justify-content: space-between;
+  font-size: 11px;
+  font-weight: 700;
+}
+
+.mem-sub-info,
+.gpu-sub-info {
+  font-family: var(--font-mono);
+  font-size: 10px;
+  color: var(--color-text-dim);
+}
+
+.gpu-temp-row {
+  display: flex;
+  justify-content: space-between;
+  font-family: var(--font-mono);
+  font-size: 9px;
+  color: var(--color-cyan-tech);
+}
+
+/* Storage Modules */
+.storage-list {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.storage-item {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+}
+
+.storage-header-row {
+  display: flex;
+  justify-content: space-between;
+  font-size: 10px;
+  font-weight: 700;
+  font-family: var(--font-mono);
+}
+
+.storage-size-sub {
+  font-family: var(--font-mono);
+  font-size: 9px;
+  color: var(--color-text-dim);
+}
+
+.storage-progress-bar {
+  width: 100%;
+  height: 6px;
+  background: rgba(10, 20, 30, 0.8);
+  border: 1px solid rgba(0, 255, 102, 0.2);
+  border-radius: 3px;
+  overflow: hidden;
+}
+
+.storage-progress-fill {
+  height: 100%;
+  border-radius: 2px;
+  transition: width 0.4s ease;
+}
+
+.storage-progress-fill.green {
+  background: linear-gradient(90deg, #00bb44, var(--color-green-primary));
+  box-shadow: 0 0 6px var(--color-green-glow);
+}
+
+.storage-progress-fill.cyan {
+  background: linear-gradient(90deg, #0088cc, var(--color-cyan-tech));
+  box-shadow: 0 0 6px var(--color-cyan-glow);
+}
+
+/* =============================================================================
+ * CENTER ARENA: 3D RADAR & HOLOGRAPHIC SCANNERS
+ * ============================================================================= */
+.cockpit-center-arena {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: space-between;
+  position: relative;
+}
+
+/* Top Holographic Launch Dock */
+.holo-quick-dock {
+  display: flex;
+  gap: 12px;
+  background: rgba(8, 16, 26, 0.9);
+  border: 1px solid rgba(0, 255, 102, 0.35);
+  border-radius: 8px;
+  padding: 6px 14px;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.8), 0 0 15px rgba(0, 255, 102, 0.15);
+  backdrop-filter: blur(8px);
+  z-index: 10;
+}
+
+.holo-dock-btn {
+  background: rgba(14, 26, 40, 0.92);
+  border: 1px solid rgba(0, 255, 102, 0.25);
+  color: var(--color-text-main);
+  border-radius: 6px;
+  padding: 6px 14px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.holo-dock-btn:hover {
+  background: rgba(0, 255, 102, 0.22);
+  border-color: var(--color-green-primary);
+  color: var(--color-green-primary);
+  box-shadow: 0 0 12px var(--color-green-glow);
+  transform: translateY(-1px);
+}
+
+.dock-btn-icon {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.dock-btn-label {
+  font-family: var(--font-hud);
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 1px;
+}
+
+/* Holographic Tri-Panel Stage */
+.holographic-scanner-stage {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 18px;
+  width: 100%;
+  flex: 1;
+  position: relative;
+}
+
+.holo-scanner-panel {
+  width: 180px;
+  background: linear-gradient(160deg, rgba(8, 18, 28, 0.9) 0%, rgba(4, 10, 18, 0.94) 100%);
+  border: 1px solid rgba(0, 255, 102, 0.35);
+  border-radius: 8px;
+  padding: 8px 10px;
+  box-shadow: 0 4px 18px rgba(0, 0, 0, 0.8), inset 0 0 10px rgba(0, 255, 102, 0.05);
+  backdrop-filter: blur(8px);
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  z-index: 5;
+}
+
+.holo-panel-header {
+  border-bottom: 1px solid rgba(0, 255, 102, 0.15);
+  padding-bottom: 4px;
+}
+
+.panel-header-title {
+  display: flex;
+  flex-direction: column;
+}
+
+.holo-tag {
+  font-family: var(--font-hud);
+  font-size: 10px;
+  font-weight: 700;
+  color: var(--color-text-main);
+  letter-spacing: 0.8px;
+}
+
+.holo-sub-tag {
+  font-family: var(--font-mono);
+  font-size: 9px;
+  color: var(--color-green-primary);
+}
+
+.holo-mini-radar-wrap {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  padding: 2px 0;
+}
+
+.holo-networks-list {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  min-height: 80px;
+}
+
+.holo-net-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 3px 6px;
+  background: rgba(12, 22, 34, 0.7);
+  border: 1px solid rgba(0, 255, 102, 0.12);
+  border-radius: 3px;
+  font-family: var(--font-mono);
+  font-size: 9px;
+}
+
+.holo-net-row.active {
+  border-color: var(--color-green-primary);
+  background: rgba(0, 255, 102, 0.15);
+}
+
+.net-ssid {
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-width: 100px;
+  color: var(--color-text-main);
+}
+
+.net-signal {
+  color: var(--color-text-dim);
+}
+
+.net-signal.green {
+  color: var(--color-green-primary);
+  font-weight: 700;
+}
+
+.holo-scanner-footer {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  border-top: 1px solid rgba(0, 255, 102, 0.12);
+  padding-top: 4px;
+  font-family: var(--font-mono);
+  font-size: 8px;
+}
+
+.scan-pulse-text {
+  color: var(--color-green-primary);
+  letter-spacing: 1px;
+  animation: pulseScan 1.6s infinite ease-in-out;
+}
+
+@keyframes pulseScan {
+  0%, 100% { opacity: 0.5; }
+  50% { opacity: 1; text-shadow: 0 0 6px var(--color-green-glow); }
+}
+
+.scan-signal-icons {
+  color: var(--color-green-primary);
+}
+
+/* Center 3D Radar Platform */
+.central-3d-radar-platform {
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+}
+
+.radar-viewport {
+  position: relative;
+  width: 340px;
+  height: 340px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.radar-emitter-ring {
+  position: absolute;
+  width: 290px;
+  height: 290px;
+  border: 1.5px solid rgba(0, 255, 102, 0.35);
+  border-radius: 50%;
+  box-shadow: 0 0 25px rgba(0, 255, 102, 0.2), inset 0 0 25px rgba(0, 255, 102, 0.1);
+  pointer-events: none;
+}
+
+/* =============================================================================
+ * RIGHT COLUMN: POWER CORE & WORKSPACES
+ * ============================================================================= */
+.power-core-content {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+}
+
+.power-circular-gauge {
+  position: relative;
+  width: 110px;
+  height: 110px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.gauge-inner-arc {
+  fill: none;
+  stroke-width: 5;
+  stroke-linecap: round;
+}
+
+.power-gauge-text {
+  position: absolute;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+}
+
+.power-pct {
+  font-family: var(--font-mono);
+  font-size: 20px;
+  font-weight: 800;
+  color: #ffffff;
+  text-shadow: 0 0 8px var(--color-green-glow);
+}
+
+.power-state {
+  font-family: var(--font-tech);
+  font-size: 9px;
+  font-weight: 600;
+  color: var(--color-cyan-tech);
+}
+
+.power-details-list {
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.power-detail-row {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-family: var(--font-mono);
+  font-size: 10px;
+}
+
+.pwr-icon.green {
+  color: var(--color-green-primary);
+}
+
+.power-profile-section {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  margin: 2px 0;
+}
+
+.pwr-sub-label {
+  font-family: var(--font-tech);
+  font-size: 9px;
+  font-weight: 700;
+  color: var(--color-text-dim);
+  letter-spacing: 0.5px;
+}
+
+.power-profile-selector {
+  display: flex;
+  gap: 4px;
+}
+
+.prof-pill-btn {
+  flex: 1;
+  background: rgba(12, 22, 34, 0.9);
+  border: 1px solid rgba(0, 255, 102, 0.2);
+  color: var(--color-text-dim);
+  border-radius: 4px;
+  padding: 4px 2px;
+  font-family: var(--font-mono);
+  font-size: 9px;
+  font-weight: 700;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.prof-pill-btn:hover,
+.prof-pill-btn.active {
+  background: rgba(0, 255, 102, 0.2);
+  border-color: var(--color-green-primary);
+  color: var(--color-green-primary);
+  box-shadow: 0 0 8px var(--color-green-dim);
+}
+
+.workspaces-channels-list {
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+  margin-bottom: 6px;
+}
+
+.workspace-channel-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 4px 8px;
+  background: rgba(10, 18, 28, 0.7);
+  border: 1px solid rgba(0, 255, 102, 0.12);
+  border-radius: 4px;
+  font-family: var(--font-mono);
+  font-size: 10px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.workspace-channel-row:hover {
+  border-color: var(--color-green-primary);
+  background: rgba(0, 255, 102, 0.1);
+}
+
+.workspace-channel-row.active {
+  border-color: var(--color-green-primary);
+  background: linear-gradient(90deg, rgba(0, 255, 102, 0.25) 0%, rgba(0, 255, 102, 0.06) 100%);
+  box-shadow: 0 0 8px var(--color-green-dim);
+}
+
+.ws-num {
+  color: var(--color-text-dim);
+  font-weight: 700;
+}
+
+.workspace-channel-row.active .ws-num {
+  color: var(--color-green-primary);
+}
+
+.ws-name {
+  flex: 1;
+  margin-left: 8px;
+  font-weight: 600;
+  letter-spacing: 0.5px;
+}
+
+.ws-indicator {
+  color: var(--color-text-muted);
+}
+
+.ws-indicator.active {
+  color: var(--color-green-primary);
+  text-shadow: 0 0 6px var(--color-green-glow);
+}
+
+.workspaces-footer-status {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  border-top: 1px solid rgba(0, 255, 102, 0.12);
+  padding-top: 4px;
+  font-family: var(--font-mono);
+  font-size: 9px;
+  color: var(--color-text-dim);
+}
+
+.ws-layout-icons {
+  display: flex;
+  gap: 4px;
+}
+
+.layout-box {
+  cursor: pointer;
+}
+
+.layout-box.active {
+  color: var(--color-green-primary);
+}
+
+/* =============================================================================
+ * 3. LOWER COCKPIT CONSOLE
+ * ============================================================================= */
+.cockpit-bottom-console {
+  display: grid;
+  grid-template-columns: 1fr 340px;
+  gap: 16px;
+  height: 110px;
+  margin-bottom: 2px;
+}
+
+.bottom-console-segment {
+  background: linear-gradient(145deg, rgba(8, 16, 26, 0.94) 0%, rgba(4, 9, 15, 0.96) 100%);
+  border: 1px solid rgba(0, 255, 102, 0.25);
+  border-radius: 8px;
+  padding: 8px 12px;
+  box-shadow: 0 4px 18px rgba(0, 0, 0, 0.8), inset 0 0 10px rgba(0, 255, 102, 0.04);
+  backdrop-filter: blur(8px);
+}
+
+.env-speedometer-panel {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.env-metrics-box {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  min-width: 100px;
+}
+
+.env-box-title {
+  font-family: var(--font-hud);
+  font-size: 10px;
+  font-weight: 700;
+  color: var(--color-green-primary);
+  letter-spacing: 0.8px;
+}
+
+.env-item {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.env-glyph {
+  font-size: 12px;
+  color: var(--color-cyan-tech);
+}
+
+.env-text {
+  display: flex;
+  flex-direction: column;
+}
+
+.env-lbl {
+  font-family: var(--font-tech);
+  font-size: 8px;
+  color: var(--color-text-dim);
+}
+
+.env-val {
+  font-family: var(--font-mono);
+  font-size: 10px;
+  font-weight: 700;
+  color: #ffffff;
+}
+
+.spaceship-wireframe-wrap {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.center-speedometer-box {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.engine-dial-wrapper {
+  position: relative;
+  width: 160px;
+  height: 90px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.engine-dial-svg {
+  position: absolute;
+  top: 0;
+  left: 0;
+}
+
+.dial-track {
+  stroke-linecap: round;
+}
+
+.dial-fill {
+  stroke-linecap: round;
+  filter: drop-shadow(0 0 6px var(--color-green-glow));
+  transition: stroke-dashoffset 0.4s ease;
+}
+
+.engine-dial-readout {
+  position: absolute;
+  bottom: 8px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+}
+
+.engine-ghz {
+  font-family: var(--font-mono);
+  font-size: 22px;
+  font-weight: 800;
+  color: #ffffff;
+  text-shadow: 0 0 10px var(--color-green-glow);
+  line-height: 1;
+}
+
+.engine-unit {
+  font-family: var(--font-mono);
+  font-size: 9px;
+  color: var(--color-green-primary);
+  font-weight: 700;
+}
+
+.engine-tag {
+  font-family: var(--font-tech);
+  font-size: 8px;
+  font-weight: 700;
+  color: var(--color-text-dim);
+  letter-spacing: 0.5px;
+}
+
+.engine-scale-marks {
+  position: absolute;
+  bottom: 2px;
+  width: 130px;
+  display: flex;
+  justify-content: space-between;
+  font-family: var(--font-mono);
+  font-size: 8px;
+  color: var(--color-text-muted);
+}
+
+.telemetry-waveform-box {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+/* Quick Access Panel */
+.quick-access-panel {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.quick-access-title {
+  font-family: var(--font-hud);
+  font-size: 10px;
+  font-weight: 700;
+  color: var(--color-green-primary);
+  letter-spacing: 0.8px;
+  border-bottom: 1px solid rgba(0, 255, 102, 0.15);
+  padding-bottom: 2px;
+}
+
+.quick-access-grid {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 6px;
+  height: 100%;
+}
+
+.qa-btn {
+  background: rgba(12, 22, 34, 0.85);
+  border: 1px solid rgba(0, 255, 102, 0.2);
+  color: var(--color-text-main);
+  border-radius: 4px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 2px;
+  padding: 4px 2px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.qa-btn:hover {
+  background: rgba(0, 255, 102, 0.2);
+  border-color: var(--color-green-primary);
+  color: var(--color-green-primary);
+  box-shadow: 0 0 10px var(--color-green-dim);
+  transform: scale(1.02);
+}
+
+.qa-btn.danger:hover {
+  background: rgba(255, 51, 102, 0.2);
+  border-color: #ff3366;
+  color: #ff3366;
+  box-shadow: 0 0 10px rgba(255, 51, 102, 0.4);
+}
+
+.qa-icon {
+  font-size: 13px;
+}
+
+.qa-label {
+  font-family: var(--font-tech);
+  font-size: 8px;
+  font-weight: 700;
+  letter-spacing: 0.5px;
+}
+
+/* =============================================================================
+ * 4. BOTTOM AEROSPACE STATUS DOCK RAIL
+ * ============================================================================= */
+.bottom-aerospace-dock {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  height: 22px;
+  background: linear-gradient(180deg, rgba(8, 14, 22, 0.94) 0%, rgba(4, 7, 12, 0.96) 100%);
+  border: 1px solid rgba(0, 255, 102, 0.2);
+  border-radius: 4px;
+  padding: 0 14px;
+  font-family: var(--font-mono);
+  font-size: 9px;
+  color: var(--color-text-dim);
+}
+
+.dock-center-emblem {
+  cursor: pointer;
+  padding: 0 8px;
+  transition: transform 0.2s ease;
+}
+
+.dock-center-emblem:hover {
+  transform: scale(1.2);
+}
+
+.alien-emblem-glyph {
+  font-size: 14px;
+  filter: drop-shadow(0 0 6px var(--color-green-glow));
+}
+
+.dock-stat {
+  letter-spacing: 0.5px;
+}
+
+.green {
+  color: var(--color-green-primary);
+}
+
+.cyan {
+  color: var(--color-cyan-tech);
+}
+
+.violet {
+  color: var(--color-violet-accent);
+}

@@ -1,0 +1,278 @@
+#!/usr/bin/env python3
+"""
+================================================================================
+🛸 SOLARIS SPACECRAFT // HIGH-PRECISION NEURAL VOICE UNLOCK DAEMON
+Strictly listens for authorized multi-word command phrases ("ENGINES START", etc.)
+and triggers graceful Wayland lockscreen unlock with real-time sound feedback.
+Single words ("engines", "engine", "start") will NEVER trigger unlock.
+================================================================================
+"""
+
+import os
+import sys
+import json
+import time
+import queue
+import math
+import struct
+import subprocess
+import signal
+import sounddevice as sd
+import vosk
+
+HOME_DIR = os.path.expanduser("~")
+MODEL_PATH = os.environ.get("VOSK_MODEL_PATH", f"{HOME_DIR}/.local/share/vosk-models/vosk-model-small-en-us-0.15")
+DISPATCHER_SCRIPT = f"{HOME_DIR}/.local/share/sounds/play_unlock_sequence.py"
+LOG_FILE = "/tmp/solaris-voice-unlock.log"
+
+# Audio capture configuration
+SAMPLE_RATE = 16000
+BLOCK_SIZE = 4000  # 250ms per block
+MIN_RMS_THRESHOLD = 180  # Filter out low-energy ambient hiss / key tap noise
+
+# Strict multi-word command trigger phrases (single words like "engines" or "start" will NEVER match)
+TRIGGER_PHRASES = {
+    "engine start",
+    "engines start",
+    "start engine",
+    "start engines",
+    "solaris start",
+    "start solaris",
+    "solaris unlock",
+    "unlock solaris",
+    "ignition start",
+    "start ignition",
+    "system start",
+    "start system",
+    "unlock system",
+    "system unlock",
+    "warp engine start",
+    "warp engines start",
+    "warp engine",
+    "authorize access",
+    "access granted",
+    "voice unlock",
+    "engage solaris",
+    "computer unlock",
+    "open solaris",
+}
+
+# Vocabulary & Grammar specification for Kaldi ASR
+GRAMMAR_LIST = [
+    # Individual keywords and command tokens
+    "engine", "engines", "start", "started", "unlock", "solaris", "ignition", "warp", "system",
+    "open", "engage", "authorize", "access", "granted", "voice", "computer",
+    # Multi-word commands
+    "engine start",
+    "engines start",
+    "start engine",
+    "start engines",
+    "solaris start",
+    "start solaris",
+    "solaris unlock",
+    "unlock solaris",
+    "ignition start",
+    "start ignition",
+    "system start",
+    "start system",
+    "unlock system",
+    "system unlock",
+    "warp engine start",
+    "warp engines start",
+    "warp engine",
+    "authorize access",
+    "access granted",
+    "voice unlock",
+    "engage solaris",
+    "computer unlock",
+    "open solaris",
+    # Spoken numbers and fillers
+    "one", "two", "three", "four", "five", "six", "seven", "eight", "nine", "zero",
+    # Ambient speech & terminal distractor vocabulary
+    "the", "terminal", "password", "keyboard", "typing", "cancel", "stop",
+    "hello", "matrix", "denied", "login", "alien", "spacecraft",
+    "screen", "status", "test", "yes", "no", "okay", "please",
+    "[unk]",
+]
+
+def optimize_microphone():
+    """Ensure the default microphone is unmuted and boost gain for clear voice capture."""
+    try:
+        subprocess.run(["wpctl", "set-mute", "@DEFAULT_AUDIO_SOURCE@", "0"],
+                       check=False, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+        vol_out = subprocess.check_output(["wpctl", "get-volume", "@DEFAULT_AUDIO_SOURCE@"],
+                                          text=True, stderr=subprocess.DEVNULL)
+        if "Volume:" in vol_out:
+            vol_str = vol_out.split()[1]
+            vol_val = float(vol_str)
+            if vol_val < 0.75:
+                subprocess.run(["wpctl", "set-volume", "@DEFAULT_AUDIO_SOURCE@", "0.85"],
+                               check=False, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+    except Exception:
+        pass
+
+def calculate_rms(audio_bytes):
+    """Compute Root Mean Square (RMS) amplitude from raw 16-bit PCM bytes."""
+    count = len(audio_bytes) // 2
+    if count == 0:
+        return 0
+    try:
+        shorts = struct.unpack(f"<{count}h", audio_bytes)
+        sum_sq = sum(s * s for s in shorts)
+        return math.sqrt(sum_sq / count)
+    except Exception:
+        return 0
+
+def match_trigger(text):
+    """
+    Strict phrase validation:
+    Must match a confirmed multi-word phrase from TRIGGER_PHRASES.
+    Single words (like 'engine', 'engines', 'start') will NEVER match.
+    """
+    if not text:
+        return None
+    clean = " ".join(text.lower().strip().split())
+    words = clean.split()
+    if len(words) < 2:
+        return None
+
+    # Exact match for multi-word phrase
+    if clean in TRIGGER_PHRASES:
+        return clean
+
+    # Substring check for known multi-word triggers
+    for phrase in TRIGGER_PHRASES:
+        if phrase in clean:
+            return phrase
+
+    # Check 2-word and 3-word n-grams in the transcribed sequence
+    for i in range(len(words) - 1):
+        pair = f"{words[i]} {words[i+1]}"
+        if pair in TRIGGER_PHRASES:
+            return pair
+    for i in range(len(words) - 2):
+        triplet = f"{words[i]} {words[i+1]} {words[i+2]}"
+        if triplet in TRIGGER_PHRASES:
+            return triplet
+
+    return None
+
+def trigger_audio_feedback():
+    """Launch original audio startup sound and cockpit telemetry in background."""
+    env = os.environ.copy()
+    env["XDG_RUNTIME_DIR"] = "/run/user/1000"
+    env["PULSE_SERVER"] = "/run/user/1000/pulse/native"
+    if os.path.exists(DISPATCHER_SCRIPT):
+        try:
+            subprocess.Popen([
+                sys.executable,
+                DISPATCHER_SCRIPT
+            ], start_new_session=True, env=env)
+            return
+        except Exception:
+            pass
+
+def unlock_desktop(matched_phrase="ENGINES START"):
+    """Gracefully unlock Hyprlock and the Wayland desktop session."""
+    print(f"[Solaris Voice] ✔ Verified Command: '{matched_phrase.upper()}'! Disengaging lockscreen...", flush=True)
+
+    # Set voice unlock marker timestamp so solaris-lock skips duplicate audio
+    try:
+        with open("/tmp/solaris_voice_unlocked", "w") as f:
+            f.write(f"{time.time()}\n")
+    except Exception:
+        pass
+
+    # 1. Start audio sound and telemetry sequence
+    trigger_audio_feedback()
+
+    # 2. Unlock Hyprlock cleanly via SIGUSR1 (ext-session-lock-v1 protocol release)
+    subprocess.run(["pkill", "-SIGUSR1", "-x", "hyprlock"], check=False)
+    subprocess.run(["loginctl", "unlock-session"], check=False)
+
+    time.sleep(0.3)
+    sys.exit(0)
+
+def main():
+    signal.signal(signal.SIGINT, lambda s, f: sys.exit(0))
+    signal.signal(signal.SIGTERM, lambda s, f: sys.exit(0))
+
+    optimize_microphone()
+
+    if not os.path.exists(MODEL_PATH):
+        print(f"[Solaris Voice] Error: Vosk model not found at {MODEL_PATH}", file=sys.stderr, flush=True)
+        sys.exit(1)
+
+    vosk.SetLogLevel(-1)
+    model = vosk.Model(MODEL_PATH)
+    rec = vosk.KaldiRecognizer(model, SAMPLE_RATE, json.dumps(GRAMMAR_LIST))
+
+    audio_q = queue.Queue()
+
+    def audio_callback(indata, frames, time_info, status):
+        if status:
+            pass
+        audio_q.put(bytes(indata))
+
+    print("[Solaris Voice] Acoustic sensor armed. Listening for 'ENGINES START'...", flush=True)
+
+    stream = None
+    for attempt in range(10):
+        try:
+            stream = sd.RawInputStream(
+                samplerate=SAMPLE_RATE,
+                blocksize=BLOCK_SIZE,
+                dtype='int16',
+                channels=1,
+                callback=audio_callback
+            )
+            stream.start()
+            break
+        except Exception:
+            time.sleep(0.4)
+
+    if not stream:
+        print("[Solaris Voice] Fatal: Audio device initialization failed.", file=sys.stderr, flush=True)
+        sys.exit(1)
+
+    try:
+        with stream:
+            while True:
+                try:
+                    data = audio_q.get(timeout=0.3)
+                except queue.Empty:
+                    # Terminate if hyprlock was unlocked via PIN/password
+                    res = subprocess.run(["pgrep", "-x", "hyprlock"], stdout=subprocess.PIPE, check=False)
+                    if res.returncode != 0:
+                        sys.exit(0)
+                    continue
+
+                res = subprocess.run(["pgrep", "-x", "hyprlock"], stdout=subprocess.PIPE, check=False)
+                if res.returncode != 0:
+                    sys.exit(0)
+
+                rms = calculate_rms(data)
+                if rms < MIN_RMS_THRESHOLD:
+                    continue
+
+                if rec.AcceptWaveform(data):
+                    res = json.loads(rec.Result())
+                    text = res.get("text", "")
+                    if text:
+                        matched = match_trigger(text)
+                        if matched:
+                            unlock_desktop(matched)
+                else:
+                    partial = json.loads(rec.PartialResult())
+                    part_text = partial.get("partial", "")
+                    if part_text:
+                        matched = match_trigger(part_text)
+                        if matched:
+                            unlock_desktop(matched)
+
+    except Exception as e:
+        print(f"[Solaris Voice] Audio stream error: {e}", file=sys.stderr, flush=True)
+        sys.exit(1)
+
+if __name__ == "__main__":
+    main()

@@ -1,0 +1,60 @@
+#!/usr/bin/env bash
+# ==============================================================================
+# 🛸 SOLARIS VOICE-ACTIVATED & PIN SPACECRAFT LOCKSCREEN LAUNCHER
+# ==============================================================================
+
+export XDG_RUNTIME_DIR="/run/user/1000"
+export PULSE_SERVER="/run/user/1000/pulse/native"
+
+# Ensure microphone and audio sink are active and unmuted (PipeWire & ALSA)
+wpctl set-mute @DEFAULT_AUDIO_SOURCE@ 0 2>/dev/null || true
+wpctl set-mute @DEFAULT_AUDIO_SINK@ 0 2>/dev/null || true
+wpctl set-volume @DEFAULT_AUDIO_SINK@ 1.0 2>/dev/null || true
+amixer -c 0 sset 'Master' 100% unmute 2>/dev/null || true
+amixer -c 0 sset 'Headphone' 100% unmute 2>/dev/null || true
+amixer -c 0 sset 'Speaker' 100% unmute 2>/dev/null || true
+amixer -c 0 sset 'PCM' 100% unmute 2>/dev/null || true
+
+# Clear previous voice unlock flags
+rm -f /tmp/solaris_voice_unlocked
+
+# Kill any existing voice listeners
+pkill -f solaris-voice-unlock 2>/dev/null || true
+
+# Start voice recognition listener in background with logging
+LOG_FILE="/tmp/solaris-voice-unlock.log"
+$HOME/.local/bin/solaris-voice-unlock > "$LOG_FILE" 2>&1 &
+VOICE_PID=$!
+
+# Cleanup trap on lockscreen exit
+cleanup() {
+    kill $VOICE_PID 2>/dev/null || true
+}
+trap cleanup EXIT INT TERM
+
+# Set stasis blackout state behind lockscreen
+echo "LOCKED" > /tmp/solaris_lock_state
+
+# Launch Hyprlock
+/usr/bin/hyprlock "$@"
+
+# Screen Unlocked! Clear lock state and trigger spaceship sequential lighting-up animation
+echo "UNLOCKED" > /tmp/solaris_lock_state
+echo "$(date +%s.%N)" > /tmp/solaris_awakening_time
+
+# Stop voice listener cleanly by PID
+cleanup
+
+# If unlocked via PIN/Password (not voice unlock which already triggered audio), trigger unlock sequence
+NOW=$(date +%s)
+VOICE_TIME=0
+if [[ -f /tmp/solaris_voice_unlocked ]]; then
+    VOICE_TIME=$(cat /tmp/solaris_voice_unlocked 2>/dev/null | cut -d'.' -f1)
+fi
+
+TIME_DIFF=$((NOW - VOICE_TIME))
+
+if [[ $TIME_DIFF -gt 3 ]]; then
+    nohup $(command -v python3) $HOME/.local/share/sounds/play_unlock_sequence.py >> /tmp/solaris_unlock_sequence.log 2>&1 &
+    disown
+fi

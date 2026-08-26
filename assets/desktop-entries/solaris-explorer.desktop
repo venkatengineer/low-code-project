@@ -1,0 +1,12 @@
+[Desktop Entry]
+Name=Starship Data Navigator
+GenericName=Spacecraft File Explorer
+Comment=Solaris Starship Internal Data-Navigation System
+Exec=solaris-explorer %U
+Icon=system-file-manager
+Terminal=false
+Type=Application
+Categories=System;FileManager;Utility;Core;
+MimeType=inode/directory;
+Keywords=files;explorer;spacecraft;solaris;navigator;
+StartupWMClass=SOLARIS // DATA NAVIGATOR

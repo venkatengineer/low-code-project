@@ -1,0 +1,198 @@
+#!/usr/bin/env python3
+import curses
+import math
+import time
+import random
+import sys
+
+TARGET_TYPES = [
+    ("XENOMORPH CARRIER", "CL-IV BIO-TITAN", 0.95),
+    ("ZETA RETICULI SCOUT", "LIGHT CORVETTE", 0.70),
+    ("ANOMALOUS PROBE", "PROBE-X99", 0.40),
+    ("EXTRATERRESTRIAL SPORE", "ORGANIC CLOUD", 0.20),
+    ("TACHYON EMISSION", "WARP PHENOMENON", 0.85),
+    ("MOTHERSHIP ESCORT", "DREADNOUGHT", 0.99),
+    ("UNKNOWN SIGNATURE", "UNCLASSIFIED", 0.50),
+    ("BIOMECHANICAL DRONE", "AUTONOMOUS", 0.60),
+]
+
+class RadarTarget:
+    def __init__(self, angle, distance, name, t_type, threat):
+        self.angle = angle
+        self.distance = distance
+        self.name = name
+        self.type = t_type
+        self.threat = threat
+        self.speed = random.uniform(-0.02, 0.02)
+        self.dist_speed = random.uniform(-0.005, 0.005)
+        self.ping_decay = 0.0
+
+    def update(self, sweep_angle):
+        self.angle = (self.angle + self.speed) % (2 * math.pi)
+        self.distance = max(0.15, min(0.92, self.distance + self.dist_speed))
+        
+        # Check if swept
+        angle_diff = abs(self.angle - sweep_angle)
+        if angle_diff > math.pi:
+            angle_diff = 2 * math.pi - angle_diff
+        if angle_diff < 0.15:
+            self.ping_decay = 1.0
+        else:
+            self.ping_decay = max(0.0, self.ping_decay - 0.025)
+
+def main(stdscr):
+    curses.curs_set(0)
+    stdscr.nodelay(True)
+    curses.start_color()
+    curses.use_default_colors()
+
+    # Colors
+    curses.init_pair(1, curses.COLOR_GREEN, -1)   # Radar Grid
+    curses.init_pair(2, curses.COLOR_CYAN, -1)    # Sweep Beam
+    curses.init_pair(3, curses.COLOR_RED, -1)     # High Threat Blip
+    curses.init_pair(4, curses.COLOR_YELLOW, -1)  # Med Threat Blip
+    curses.init_pair(5, curses.COLOR_MAGENTA, -1) # Sci-fi headers
+    curses.init_pair(6, curses.COLOR_WHITE, -1)   # Text
+
+    sweep_angle = 0.0
+    targets = []
+    for _ in range(7):
+        name, t_type, threat = random.choice(TARGET_TYPES)
+        targets.append(RadarTarget(
+            angle=random.uniform(0, 2 * math.pi),
+            distance=random.uniform(0.2, 0.88),
+            name=name,
+            t_type=t_type,
+            threat=threat
+        ))
+
+    log_entries = ["RADAR BIOSIGNATURE ARRAY ONLINE", "SEARCHING FREQUENCIES: 1420.405 MHz (HYDROGEN LINE)"]
+    last_log_time = time.time()
+
+    while True:
+        key = stdscr.getch()
+        if key in (ord('q'), ord('Q'), 27):
+            break
+
+        max_y, max_x = stdscr.getmaxyx()
+        if max_y < 20 or max_x < 60:
+            stdscr.clear()
+            stdscr.addstr(0, 0, "Terminal too small for Alien Radar HUD. Resize window.", curses.color_pair(3))
+            stdscr.refresh()
+            time.sleep(0.1)
+            continue
+
+        stdscr.erase()
+
+        # Update sweep
+        sweep_angle = (sweep_angle + 0.07) % (2 * math.pi)
+        for t in targets:
+            t.update(sweep_angle)
+
+        # Periodically add logs
+        if time.time() - last_log_time > 3.5:
+            last_log_time = time.time()
+            active_blips = [t for t in targets if t.ping_decay > 0.6]
+            if active_blips:
+                b = random.choice(active_blips)
+                log_entries.append(f"PING: {b.name} [{b.distance*100:.1f} AU] @ {math.degrees(b.angle):.0f}°")
+            else:
+                log_entries.append(f"SWEEP: DISTORTION FLUX {random.uniform(0.01, 0.99):.3f} TCH")
+            if len(log_entries) > 7:
+                log_entries.pop(0)
+
+        # Center of radar screen
+        center_y = max_y // 2
+        center_x = max(18, min(max_x // 3, 35))
+        radius_y = min(center_y - 2, 16)
+        radius_x = int(radius_y * 2.2)
+
+        # Draw Title
+        title = " 👽 XENOMORPH DEEP SPACE BIOSCAN RADAR 🛸 "
+        stdscr.addstr(0, max(0, (max_x - len(title)) // 2), title, curses.color_pair(1) | curses.A_BOLD)
+        subtitle = "« QUANTUM TACHYON SWEEPER // SECTOR: 0X-ZETA-9 »"
+        stdscr.addstr(1, max(0, (max_x - len(subtitle)) // 2), subtitle, curses.color_pair(2))
+
+        # Draw Radar Circles
+        for r_factor in [0.33, 0.66, 1.0]:
+            r_y = int(radius_y * r_factor)
+            r_x = int(radius_x * r_factor)
+            for deg in range(0, 360, 6):
+                rad = math.radians(deg)
+                py = int(center_y + r_y * math.sin(rad))
+                px = int(center_x + r_x * math.cos(rad))
+                if 0 <= py < max_y and 0 <= px < max_x:
+                    ch = "·" if r_factor < 1.0 else "•"
+                    stdscr.addch(py, px, ch, curses.color_pair(1) | curses.A_DIM)
+
+        # Draw Crosshairs
+        for dy in range(-radius_y, radius_y + 1):
+            py = center_y + dy
+            if 0 <= py < max_y:
+                stdscr.addch(py, center_x, "|", curses.color_pair(1) | curses.A_DIM)
+        for dx in range(-radius_x, radius_x + 1):
+            px = center_x + dx
+            if 0 <= px < max_x:
+                stdscr.addch(center_y, px, "-", curses.color_pair(1) | curses.A_DIM)
+        stdscr.addch(center_y, center_x, "⟁", curses.color_pair(2) | curses.A_BOLD)
+
+        # Draw Sweep Line
+        for step in range(1, radius_y + 1):
+            sy = int(center_y + step * math.sin(sweep_angle))
+            sx = int(center_x + (step * 2.2) * math.cos(sweep_angle))
+            if 0 <= sy < max_y and 0 <= sx < max_x:
+                stdscr.addch(sy, sx, "╱" if (math.sin(sweep_angle)*math.cos(sweep_angle) < 0) else "╲", curses.color_pair(2) | curses.A_BOLD)
+
+        # Draw Blips
+        for t in targets:
+            py = int(center_y + (radius_y * t.distance) * math.sin(t.angle))
+            px = int(center_x + (radius_x * t.distance) * math.cos(t.angle))
+            if 0 <= py < max_y and 0 <= px < max_x:
+                if t.ping_decay > 0.4:
+                    color = curses.color_pair(3) if t.threat > 0.75 else (curses.color_pair(4) if t.threat > 0.45 else curses.color_pair(2))
+                    glyph = "⏣" if t.threat > 0.75 else "ᛯ"
+                    stdscr.addch(py, px, glyph, color | curses.A_BOLD | curses.A_BLINK)
+                    # Label
+                    label = f"{t.name[:10]}"
+                    if px + 2 + len(label) < max_x:
+                        stdscr.addstr(py, px + 2, label, color)
+                elif t.ping_decay > 0.1:
+                    stdscr.addch(py, px, "·", curses.color_pair(1) | curses.A_DIM)
+
+        # Telemetry Panel on Right
+        panel_x = center_x + radius_x + 4
+        if panel_x < max_x - 20:
+            stdscr.addstr(3, panel_x, "╔═══[ CONTACT TELEMETRY ]═════════════════╗", curses.color_pair(1) | curses.A_BOLD)
+            row = 4
+            for idx, t in enumerate(sorted(targets, key=lambda x: x.distance)):
+                if row >= max_y - 10:
+                    break
+                stat_color = curses.color_pair(3) if t.threat > 0.75 else curses.color_pair(4) if t.threat > 0.45 else curses.color_pair(1)
+                sig = f"[{idx+1}] {t.name:<18} DIST: {t.distance*100:4.1f} AU"
+                stdscr.addstr(row, panel_x, f"║ {sig:<39} ║", stat_color)
+                row += 1
+                meta = f"    TYPE: {t.type:<12} BRG: {math.degrees(t.angle):3.0f}°"
+                stdscr.addstr(row, panel_x, f"║ {meta:<39} ║", curses.color_pair(6))
+                row += 1
+
+            stdscr.addstr(row, panel_x, "╠═══[ MOTHERSHIP LOGS ]═══════════════════╣", curses.color_pair(1) | curses.A_BOLD)
+            row += 1
+            for log in log_entries:
+                if row >= max_y - 3:
+                    break
+                stdscr.addstr(row, panel_x, f"║ > {log[:35]:<36} ║", curses.color_pair(2))
+                row += 1
+            stdscr.addstr(row, panel_x, "╚═════════════════════════════════════════╝", curses.color_pair(1) | curses.A_BOLD)
+
+        # Bottom Instructions
+        footer = " [Q] ABORT RADAR | [SPACE] PULSE PROBE | XENOGLYPH TELEMETRY ACTIVE "
+        stdscr.addstr(max_y - 1, max(0, (max_x - len(footer)) // 2), footer, curses.color_pair(5) | curses.A_REVERSE)
+
+        stdscr.refresh()
+        time.sleep(0.06)
+
+if __name__ == "__main__":
+    try:
+        curses.wrapper(main)
+    except KeyboardInterrupt:
+        pass

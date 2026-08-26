@@ -1,0 +1,11 @@
+{
+  "name": "solaris-explorer",
+  "version": "1.0.0",
+  "description": "Solaris Spacecraft Internal Data-Navigation System",
+  "main": "electron/main.cjs",
+  "scripts": {
+    "start": "electron electron/main.cjs"
+  },
+  "author": "Google DeepMind / Solaris OS",
+  "license": "MIT"
+}

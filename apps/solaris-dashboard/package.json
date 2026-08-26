@@ -1,0 +1,11 @@
+{
+  "name": "solaris-dashboard",
+  "version": "1.0.0",
+  "description": "Alienware-inspired System Control Interface for Linux & Niri",
+  "main": "electron/main.cjs",
+  "private": true,
+  "type": "commonjs",
+  "scripts": {
+    "start": "electron electron/main.cjs"
+  }
+}

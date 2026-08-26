@@ -1,0 +1,125 @@
+#!/usr/bin/env python3
+"""
+Aetheris Waybar Audio HUD Integration Script
+Connects Waybar with Aetheris Holographic Music Player and MPRIS Audio Standby.
+"""
+
+import sys
+import json
+import subprocess
+import shutil
+import os
+
+def run_cmd(args):
+    try:
+        res = subprocess.run(args, capture_output=True, text=True, timeout=2)
+        return res.returncode, res.stdout.strip(), res.stderr.strip()
+    except Exception as e:
+        return 1, "", str(e)
+
+def get_status():
+    has_playerctl = shutil.which("playerctl") is not None
+    player_active = False
+    status = "Stopped"
+    artist = ""
+    title = ""
+    album = ""
+
+    if has_playerctl:
+        code, out, _ = run_cmd(["playerctl", "status"])
+        if code == 0 and out in ("Playing", "Paused"):
+            player_active = True
+            status = out
+            _, artist, _ = run_cmd(["playerctl", "metadata", "artist"])
+            _, title, _ = run_cmd(["playerctl", "metadata", "title"])
+            _, album, _ = run_cmd(["playerctl", "metadata", "album"])
+
+    if player_active:
+        display_artist = artist if artist else "Unknown Artist"
+        display_title = title if title else "Unknown Track"
+        icon = "󰝚" if status == "Playing" else "󰏤"
+        full_text = f"{icon} {display_artist} - {display_title}"
+
+        tooltip_lines = [
+            "⟦ AETHERIS // AUDIO NEXUS ⟧",
+            f"Track:   {display_title}",
+            f"Artist:  {display_artist}",
+        ]
+        if album:
+            tooltip_lines.append(f"Album:   {album}")
+        tooltip_lines.extend([
+            f"Status:  {status.upper()} (Active Matrix)",
+            "",
+            "• Left-Click:  Play / Pause",
+            "• Right-Click: Toggle Aetheris Holographic HUD",
+            "• Scroll:      Next / Previous Track"
+        ])
+        tooltip = "\n".join(tooltip_lines)
+
+        return {
+            "text": full_text,
+            "tooltip": tooltip,
+            "class": status,
+            "alt": status
+        }
+    else:
+        tooltip = "\n".join([
+            "⟦ AETHERIS // AUDIO NEXUS ⟧",
+            "Status:  AUDIO STANDBY // IDLE",
+            "Player:  Aetheris Holographic OS",
+            "",
+            "• Left-Click:  Launch / Toggle Aetheris HUD",
+            "• Right-Click: Toggle Aetheris HUD",
+            "• Shortcut:    Mod+Shift+M"
+        ])
+        return {
+            "text": "󰎆 AETHERIS STANDBY",
+            "tooltip": tooltip,
+            "class": "standby",
+            "alt": "standby"
+        }
+
+def handle_click():
+    has_playerctl = shutil.which("playerctl") is not None
+    if has_playerctl:
+        code, out, _ = run_cmd(["playerctl", "status"])
+        if code == 0 and out in ("Playing", "Paused"):
+            subprocess.Popen(["playerctl", "play-pause"])
+            return
+
+    # In standby or no player running: toggle/wake Aetheris
+    toggle_hud()
+
+def toggle_hud():
+    aetheris_bin = shutil.which("aetheris") or os.path.expanduser("~/.local/bin/aetheris")
+    if os.path.exists(aetheris_bin) or shutil.which("aetheris"):
+        subprocess.Popen([aetheris_bin, "--toggle"])
+
+def next_track():
+    if shutil.which("playerctl"):
+        subprocess.Popen(["playerctl", "next"])
+
+def prev_track():
+    if shutil.which("playerctl"):
+        subprocess.Popen(["playerctl", "previous"])
+
+def main():
+    action = sys.argv[1] if len(sys.argv) > 1 else "status"
+
+    if action == "status":
+        data = get_status()
+        print(json.dumps(data))
+    elif action in ("click", "play-pause"):
+        handle_click()
+    elif action in ("toggle", "toggle-hud"):
+        toggle_hud()
+    elif action == "next":
+        next_track()
+    elif action == "prev" or action == "previous":
+        prev_track()
+    else:
+        data = get_status()
+        print(json.dumps(data))
+
+if __name__ == "__main__":
+    main()

@@ -1,0 +1,758 @@
+#!/usr/bin/env python3
+"""
+================================================================================
+🛸 XENOMON - EXTRATERRESTRIAL-INDUSTRIAL TASK & TELEMETRY NEXUS 👽
+Advanced Alien OS Task Manager, Core Reactor Monitor & Process Control HUD
+================================================================================
+"""
+
+import curses
+import os
+import sys
+import time
+import signal
+import psutil
+from datetime import datetime, timedelta
+
+# Color Pair Definitions
+PAIR_HEADER = 1
+PAIR_ACCENT_CYAN = 2
+PAIR_ACCENT_BLUE = 3
+PAIR_ACCENT_GREEN = 4
+PAIR_ACCENT_AMBER = 5
+PAIR_ACCENT_RED = 6
+PAIR_DIM = 7
+PAIR_NORMAL = 8
+PAIR_SELECTED = 9
+PAIR_TITLE = 10
+PAIR_BAR_HIGH = 11
+PAIR_BAR_MID = 12
+PAIR_BAR_LOW = 13
+PAIR_BORDER = 14
+PAIR_HIGHLIGHT = 15
+
+class XenomonApp:
+    def __init__(self, stdscr):
+        self.stdscr = stdscr
+        self.running = True
+        self.paused = False
+        self.refresh_rate = 0.5  # seconds
+        self.view_mode = 1  # 1: Unified, 2: Process Matrix, 3: Core Reactor, 4: Memory & Storage, 5: Diagnostics
+        
+        # Navigation & Selection
+        self.selected_idx = 0
+        self.scroll_offset = 0
+        self.sort_by = "cpu"  # cpu, mem, pid, user, time, name
+        self.sort_reverse = True
+        self.filter_text = ""
+        self.is_filtering = False
+        self.filter_buffer = ""
+        
+        # Inspector Modal
+        self.inspecting_pid = None
+        self.showing_help = False
+        self.confirm_action = None  # (action_name, pid, proc_name)
+        
+        # Network & Disk History for delta calculation
+        self.last_time = time.time()
+        self.last_net_io = psutil.net_io_counters()
+        self.last_disk_io = psutil.disk_io_counters()
+        self.net_down_speed = 0.0
+        self.net_up_speed = 0.0
+        self.disk_read_speed = 0.0
+        self.disk_write_speed = 0.0
+        
+        # CPU History for mini graphs
+        self.cpu_count = psutil.cpu_count(logical=True) or 4
+        self.physical_cores = psutil.cpu_count(logical=False) or (self.cpu_count // 2)
+        self.cpu_history = [[] for _ in range(self.cpu_count)]
+        self.total_cpu_history = []
+        
+        # Process cache
+        self.processes = []
+        self.total_procs = 0
+        self.running_procs = 0
+        self.sleeping_procs = 0
+        
+        # Setup curses
+        self.init_curses()
+
+    def init_curses(self):
+        curses.curs_set(0)
+        self.stdscr.nodelay(True)
+        self.stdscr.keypad(True)
+        curses.use_default_colors()
+        
+        # Initialize Colors
+        if curses.has_colors():
+            curses.start_color()
+            
+            # Primary alien telemetry colors
+            curses.init_pair(PAIR_HEADER, curses.COLOR_CYAN, -1)
+            curses.init_pair(PAIR_ACCENT_CYAN, curses.COLOR_CYAN, -1)
+            curses.init_pair(PAIR_ACCENT_BLUE, curses.COLOR_BLUE, -1)
+            curses.init_pair(PAIR_ACCENT_GREEN, curses.COLOR_GREEN, -1)
+            curses.init_pair(PAIR_ACCENT_AMBER, curses.COLOR_YELLOW, -1)
+            curses.init_pair(PAIR_ACCENT_RED, curses.COLOR_RED, -1)
+            curses.init_pair(PAIR_DIM, curses.COLOR_WHITE, -1)
+            curses.init_pair(PAIR_NORMAL, curses.COLOR_WHITE, -1)
+            curses.init_pair(PAIR_SELECTED, curses.COLOR_BLACK, curses.COLOR_CYAN)
+            curses.init_pair(PAIR_TITLE, curses.COLOR_CYAN, -1)
+            curses.init_pair(PAIR_BAR_HIGH, curses.COLOR_RED, -1)
+            curses.init_pair(PAIR_BAR_MID, curses.COLOR_YELLOW, -1)
+            curses.init_pair(PAIR_BAR_LOW, curses.COLOR_GREEN, -1)
+            curses.init_pair(PAIR_BORDER, curses.COLOR_BLUE, -1)
+            curses.init_pair(PAIR_HIGHLIGHT, curses.COLOR_MAGENTA, -1)
+
+    def format_bytes(self, n_bytes):
+        if n_bytes is None:
+            return "0 B"
+        for unit in ['B', 'KB', 'MB', 'GB', 'TB', 'PB']:
+            if abs(n_bytes) < 1024.0:
+                return f"{n_bytes:6.1f} {unit}" if unit in ['GB', 'TB'] else f"{n_bytes:5.0f} {unit}"
+            n_bytes /= 1024.0
+        return f"{n_bytes:.1f} EB"
+
+    def format_duration(self, seconds):
+        if seconds is None:
+            return "00:00:00"
+        td = timedelta(seconds=int(seconds))
+        return str(td)
+
+    def update_telemetry(self):
+        curr_time = time.time()
+        dt = curr_time - self.last_time
+        if dt <= 0:
+            dt = 0.001
+            
+        # Network Delta
+        try:
+            net_io = psutil.net_io_counters()
+            self.net_down_speed = (net_io.bytes_recv - self.last_net_io.bytes_recv) / dt
+            self.net_up_speed = (net_io.bytes_sent - self.last_net_io.bytes_sent) / dt
+            self.last_net_io = net_io
+        except Exception:
+            pass
+
+        # Disk Delta
+        try:
+            disk_io = psutil.disk_io_counters()
+            if disk_io and self.last_disk_io:
+                self.disk_read_speed = (disk_io.read_bytes - self.last_disk_io.read_bytes) / dt
+                self.disk_write_speed = (disk_io.write_bytes - self.last_disk_io.write_bytes) / dt
+            self.last_disk_io = disk_io
+        except Exception:
+            pass
+
+        self.last_time = curr_time
+
+        # CPU Per-Core
+        try:
+            per_cpu = psutil.cpu_percent(percpu=True)
+            for i, pct in enumerate(per_cpu):
+                if i < len(self.cpu_history):
+                    self.cpu_history[i].append(pct)
+                    if len(self.cpu_history[i]) > 60:
+                        self.cpu_history[i].pop(0)
+            
+            total_cpu = psutil.cpu_percent()
+            self.total_cpu_history.append(total_cpu)
+            if len(self.total_cpu_history) > 60:
+                self.total_cpu_history.pop(0)
+        except Exception:
+            pass
+
+        # Update Process List
+        if not self.paused:
+            self.fetch_processes()
+
+    def fetch_processes(self):
+        proc_list = []
+        running = 0
+        sleeping = 0
+        
+        for proc in psutil.process_iter(['pid', 'name', 'username', 'cpu_percent', 'memory_percent', 'memory_info', 'status', 'num_threads', 'create_time', 'cmdline', 'nice']):
+            try:
+                pinfo = proc.info
+                status = pinfo.get('status', '')
+                if status == psutil.STATUS_RUNNING:
+                    running += 1
+                else:
+                    sleeping += 1
+                    
+                # Calculate uptime
+                create_t = pinfo.get('create_time')
+                uptime_sec = (time.time() - create_t) if create_t else 0
+                
+                cmdline = pinfo.get('cmdline')
+                cmd_str = " ".join(cmdline) if cmdline else (pinfo.get('name') or "")
+                
+                mem_info = pinfo.get('memory_info')
+                rss = mem_info.rss if mem_info else 0
+                vms = mem_info.vms if mem_info else 0
+                
+                proc_list.append({
+                    'pid': pinfo.get('pid', 0),
+                    'name': pinfo.get('name') or 'unknown',
+                    'user': pinfo.get('username') or 'root',
+                    'cpu': pinfo.get('cpu_percent') or 0.0,
+                    'mem': pinfo.get('memory_percent') or 0.0,
+                    'rss': rss,
+                    'vms': vms,
+                    'status': status[:1].upper() if status else 'S',
+                    'threads': pinfo.get('num_threads') or 1,
+                    'uptime': uptime_sec,
+                    'cmd': cmd_str,
+                    'nice': pinfo.get('nice', 0)
+                })
+            except (psutil.NoSuchProcess, psutil.AccessDenied, psutil.ZombieProcess):
+                continue
+                
+        self.total_procs = len(proc_list)
+        self.running_procs = running
+        self.sleeping_procs = sleeping
+        
+        # Apply Filter
+        if self.filter_text:
+            query = self.filter_text.lower()
+            proc_list = [p for p in proc_list if query in p['name'].lower() or query in p['cmd'].lower() or query in p['user'].lower() or str(p['pid']).startswith(query)]
+            
+        # Apply Sorting
+        sort_key = 'cpu'
+        if self.sort_by == 'mem':
+            sort_key = 'mem'
+        elif self.sort_by == 'pid':
+            sort_key = 'pid'
+        elif self.sort_by == 'user':
+            sort_key = 'user'
+        elif self.sort_by == 'time':
+            sort_key = 'uptime'
+        elif self.sort_by == 'name':
+            sort_key = 'name'
+            
+        if sort_key in ['user', 'name']:
+            proc_list.sort(key=lambda x: str(x[sort_key]).lower(), reverse=self.sort_reverse)
+        else:
+            proc_list.sort(key=lambda x: x[sort_key], reverse=self.sort_reverse)
+            
+        self.processes = proc_list
+
+    def draw_bar(self, y, x, width, percent, low_thresh=60, high_thresh=85):
+        if width <= 2:
+            return
+        filled_len = int((percent / 100.0) * width)
+        filled_len = max(0, min(width, filled_len))
+        
+        color = curses.color_pair(PAIR_BAR_LOW)
+        if percent >= high_thresh:
+            color = curses.color_pair(PAIR_BAR_HIGH) | curses.A_BOLD
+        elif percent >= low_thresh:
+            color = curses.color_pair(PAIR_BAR_MID)
+            
+        bar_str = "█" * filled_len + "░" * (width - filled_len)
+        try:
+            self.stdscr.addstr(y, x, bar_str, color)
+        except curses.error:
+            pass
+
+    def render_header(self, max_y, max_x):
+        header_title = " ⟦ 0x7F · EXTRATERRESTRIAL TASK & TELEMETRY NEXUS ⟧ "
+        time_str = datetime.now().strftime(" %Y-%m-%d · %H:%M:%S ")
+        
+        self.stdscr.attron(curses.color_pair(PAIR_ACCENT_CYAN) | curses.A_BOLD)
+        try:
+            self.stdscr.addstr(0, 0, "╔" + "═" * (max_x - 2) + "╗")
+            self.stdscr.addstr(0, 3, header_title, curses.color_pair(PAIR_ACCENT_CYAN) | curses.A_BOLD)
+            if max_x > len(header_title) + len(time_str) + 6:
+                self.stdscr.addstr(0, max_x - len(time_str) - 3, time_str, curses.color_pair(PAIR_ACCENT_BLUE))
+        except curses.error:
+            pass
+        self.stdscr.attroff(curses.color_pair(PAIR_ACCENT_CYAN) | curses.A_BOLD)
+        
+        uname = os.uname()
+        uptime_sec = time.time() - psutil.boot_time()
+        uptime_str = self.format_duration(uptime_sec)
+        load_1, load_5, load_15 = os.getloadavg()
+        
+        stat_line = f"║ NODE: {uname.nodename} │ KERNEL: {uname.release} │ UPTIME: {uptime_str} │ LOAD: [{load_1:.2f}, {load_5:.2f}, {load_15:.2f}] │ PROCS: {self.total_procs} (RUN: {self.running_procs}) "
+        stat_line = stat_line[:max_x - 2].ljust(max_x - 2) + "║"
+        try:
+            self.stdscr.addstr(1, 0, stat_line, curses.color_pair(PAIR_DIM))
+        except curses.error:
+            pass
+
+    def render_quantum_cpu_panel(self, start_y, start_x, height, width):
+        title = " ⬡ QUANTUM CORE ARRAY "
+        try:
+            self.stdscr.addstr(start_y, start_x, "┌" + "─" * (width - 2) + "┐", curses.color_pair(PAIR_BORDER))
+            self.stdscr.addstr(start_y, start_x + 2, title, curses.color_pair(PAIR_ACCENT_CYAN) | curses.A_BOLD)
+            
+            for row in range(1, height - 1):
+                self.stdscr.addstr(start_y + row, start_x, "│", curses.color_pair(PAIR_BORDER))
+                self.stdscr.addstr(start_y + row, start_x + width - 1, "│", curses.color_pair(PAIR_BORDER))
+            self.stdscr.addstr(start_y + height - 1, start_x, "└" + "─" * (width - 2) + "┘", curses.color_pair(PAIR_BORDER))
+        except curses.error:
+            pass
+
+        total_cpu = self.total_cpu_history[-1] if self.total_cpu_history else 0.0
+        try:
+            label = f"TOTAL REACTOR: {total_cpu:5.1f}%"
+            self.stdscr.addstr(start_y + 1, start_x + 2, label, curses.color_pair(PAIR_NORMAL) | curses.A_BOLD)
+            bar_w = max(10, width - len(label) - 6)
+            self.draw_bar(start_y + 1, start_x + len(label) + 4, bar_w, total_cpu)
+        except curses.error:
+            pass
+
+        cores_to_show = min(self.cpu_count, (height - 3) * 2)
+        rows_available = height - 3
+        if rows_available <= 0:
+            return
+            
+        for c in range(cores_to_show):
+            col_idx = c // rows_available
+            row_idx = c % rows_available
+            
+            curr_y = start_y + 2 + row_idx
+            col_w = (width - 4) // (2 if cores_to_show > rows_available else 1)
+            curr_x = start_x + 2 + (col_idx * col_w)
+            
+            pct = self.cpu_history[c][-1] if c < len(self.cpu_history) and self.cpu_history[c] else 0.0
+            core_lbl = f"C{c:02d}: {pct:4.1f}% "
+            
+            try:
+                self.stdscr.addstr(curr_y, curr_x, core_lbl, curses.color_pair(PAIR_DIM))
+                sub_bar_w = max(4, col_w - len(core_lbl) - 2)
+                self.draw_bar(curr_y, curr_x + len(core_lbl), sub_bar_w, pct)
+            except curses.error:
+                pass
+
+    def render_biomemory_panel(self, start_y, start_x, height, width):
+        title = " ⬡ BIOMEMORY & SWAP MATRIX "
+        try:
+            self.stdscr.addstr(start_y, start_x, "┌" + "─" * (width - 2) + "┐", curses.color_pair(PAIR_BORDER))
+            self.stdscr.addstr(start_y, start_x + 2, title, curses.color_pair(PAIR_ACCENT_CYAN) | curses.A_BOLD)
+            
+            for row in range(1, height - 1):
+                self.stdscr.addstr(start_y + row, start_x, "│", curses.color_pair(PAIR_BORDER))
+                self.stdscr.addstr(start_y + row, start_x + width - 1, "│", curses.color_pair(PAIR_BORDER))
+            self.stdscr.addstr(start_y + height - 1, start_x, "└" + "─" * (width - 2) + "┘", curses.color_pair(PAIR_BORDER))
+        except curses.error:
+            pass
+
+        vm = psutil.virtual_memory()
+        swap = psutil.swap_memory()
+        
+        try:
+            ram_pct = vm.percent
+            ram_used = self.format_bytes(vm.used)
+            ram_tot = self.format_bytes(vm.total)
+            lbl = f"RAM: {ram_used.strip()}/{ram_tot.strip()} ({ram_pct:4.1f}%)"
+            self.stdscr.addstr(start_y + 1, start_x + 2, lbl, curses.color_pair(PAIR_NORMAL) | curses.A_BOLD)
+            bar_w = max(8, width - len(lbl) - 5)
+            self.draw_bar(start_y + 1, start_x + len(lbl) + 3, bar_w, ram_pct)
+            
+            det = f"CACHED: {self.format_bytes(vm.cached).strip()} │ AVAIL: {self.format_bytes(vm.available).strip()}"
+            self.stdscr.addstr(start_y + 2, start_x + 2, det[:width-4], curses.color_pair(PAIR_DIM))
+            
+            if height > 4:
+                swap_pct = swap.percent
+                swap_used = self.format_bytes(swap.used)
+                swap_tot = self.format_bytes(swap.total)
+                slbl = f"SWAP: {swap_used.strip()}/{swap_tot.strip()} ({swap_pct:4.1f}%)"
+                self.stdscr.addstr(start_y + 3, start_x + 2, slbl, curses.color_pair(PAIR_NORMAL))
+                sbar_w = max(8, width - len(slbl) - 5)
+                self.draw_bar(start_y + 3, start_x + len(slbl) + 3, sbar_w, swap_pct)
+        except curses.error:
+            pass
+
+    def render_subsystems_panel(self, start_y, start_x, height, width):
+        title = " ⬡ SUBSYSTEM TELEMETRY "
+        try:
+            self.stdscr.addstr(start_y, start_x, "┌" + "─" * (width - 2) + "┐", curses.color_pair(PAIR_BORDER))
+            self.stdscr.addstr(start_y, start_x + 2, title, curses.color_pair(PAIR_ACCENT_CYAN) | curses.A_BOLD)
+            
+            for row in range(1, height - 1):
+                self.stdscr.addstr(start_y + row, start_x, "│", curses.color_pair(PAIR_BORDER))
+                self.stdscr.addstr(start_y + row, start_x + width - 1, "│", curses.color_pair(PAIR_BORDER))
+            self.stdscr.addstr(start_y + height - 1, start_x, "└" + "─" * (width - 2) + "┘", curses.color_pair(PAIR_BORDER))
+        except curses.error:
+            pass
+
+        try:
+            down_str = f"▼ DOWN: {self.format_bytes(self.net_down_speed)}/s"
+            up_str = f"▲ UP:   {self.format_bytes(self.net_up_speed)}/s"
+            self.stdscr.addstr(start_y + 1, start_x + 2, down_str[:width-4], curses.color_pair(PAIR_ACCENT_GREEN))
+            self.stdscr.addstr(start_y + 2, start_x + 2, up_str[:width-4], curses.color_pair(PAIR_ACCENT_CYAN))
+            
+            read_str = f"⛁ D-READ:  {self.format_bytes(self.disk_read_speed)}/s"
+            write_str = f"⛁ D-WRITE: {self.format_bytes(self.disk_write_speed)}/s"
+            self.stdscr.addstr(start_y + 3, start_x + 2, read_str[:width-4], curses.color_pair(PAIR_DIM))
+            if height > 4:
+                self.stdscr.addstr(start_y + 4, start_x + 2, write_str[:width-4], curses.color_pair(PAIR_DIM))
+        except curses.error:
+            pass
+
+    def render_process_table(self, start_y, start_x, height, width):
+        filter_status = f" [FILTER: '{self.filter_text}']" if self.filter_text else ""
+        pause_status = " [PAUSED]" if self.paused else ""
+        sort_indicator = f" [SORT: {self.sort_by.upper()} {'▼' if self.sort_reverse else '▲'}]"
+        
+        title = f" ⬡ PROCESS CONTROL MATRIX{sort_indicator}{filter_status}{pause_status} "
+        try:
+            self.stdscr.addstr(start_y, start_x, "┌" + "─" * (width - 2) + "┐", curses.color_pair(PAIR_BORDER))
+            self.stdscr.addstr(start_y, start_x + 2, title, curses.color_pair(PAIR_ACCENT_CYAN) | curses.A_BOLD)
+            
+            for row in range(1, height - 1):
+                self.stdscr.addstr(start_y + row, start_x, "│", curses.color_pair(PAIR_BORDER))
+                self.stdscr.addstr(start_y + row, start_x + width - 1, "│", curses.color_pair(PAIR_BORDER))
+            self.stdscr.addstr(start_y + height - 1, start_x, "└" + "─" * (width - 2) + "┘", curses.color_pair(PAIR_BORDER))
+        except curses.error:
+            pass
+
+        header_y = start_y + 1
+        cols = [
+            ("PID", 7),
+            ("USER", 10),
+            ("NI", 4),
+            ("CPU%", 7),
+            ("MEM%", 7),
+            ("RES", 9),
+            ("S", 3),
+            ("THR", 5),
+            ("UPTIME", 9),
+            ("COMMAND", width - 70)
+        ]
+        
+        header_str = " "
+        for col_name, col_len in cols:
+            if col_len > 0:
+                header_str += f"{col_name:<{col_len}} "
+        
+        try:
+            self.stdscr.addstr(header_y, start_x + 1, header_str[:width - 2].ljust(width - 2), curses.color_pair(PAIR_HEADER) | curses.A_UNDERLINE)
+        except curses.error:
+            pass
+
+        visible_rows = height - 3
+        if visible_rows <= 0:
+            return
+
+        if self.processes:
+            self.selected_idx = max(0, min(len(self.processes) - 1, self.selected_idx))
+            if self.selected_idx < self.scroll_offset:
+                self.scroll_offset = self.selected_idx
+            elif self.selected_idx >= self.scroll_offset + visible_rows:
+                self.scroll_offset = self.selected_idx - visible_rows + 1
+        else:
+            self.selected_idx = 0
+            self.scroll_offset = 0
+
+        for r in range(visible_rows):
+            proc_idx = self.scroll_offset + r
+            curr_y = header_y + 1 + r
+            if proc_idx >= len(self.processes):
+                break
+                
+            p = self.processes[proc_idx]
+            is_selected = (proc_idx == self.selected_idx)
+            
+            row_str = f" {p['pid']:<7} {p['user'][:9]:<10} {p['nice']:<4} {p['cpu']:5.1f}%  {p['mem']:5.1f}%  {self.format_bytes(p['rss']).strip():<9} {p['status']:<3} {p['threads']:<5} {self.format_duration(p['uptime']):<9} {p['cmd']}"
+            row_str = row_str[:width - 2].ljust(width - 2)
+            
+            attr = curses.color_pair(PAIR_SELECTED) if is_selected else curses.color_pair(PAIR_NORMAL)
+            if not is_selected:
+                if p['cpu'] > 50.0:
+                    attr = curses.color_pair(PAIR_ACCENT_RED) | curses.A_BOLD
+                elif p['cpu'] > 15.0:
+                    attr = curses.color_pair(PAIR_ACCENT_AMBER)
+                elif p['mem'] > 10.0:
+                    attr = curses.color_pair(PAIR_ACCENT_CYAN)
+                    
+            try:
+                self.stdscr.addstr(curr_y, start_x + 1, row_str, attr)
+            except curses.error:
+                pass
+
+    def render_footer(self, max_y, max_x):
+        if self.is_filtering:
+            prompt = f" 🔍 ENTER PROCESS FILTER: {self.filter_buffer}█ (Enter: Confirm, Esc: Cancel) "
+            try:
+                self.stdscr.addstr(max_y - 1, 0, prompt.ljust(max_x)[:max_x], curses.color_pair(PAIR_SELECTED))
+            except curses.error:
+                pass
+            return
+
+        actions = " [q] Quit │ [/] Filter │ [c] Sort-CPU │ [m] Sort-MEM │ [p] Sort-PID │ [k] Terminate │ [K] Vaporize │ [d/Enter] Inspect │ [Space] Pause │ [?] Help "
+        try:
+            self.stdscr.addstr(max_y - 1, 0, actions[:max_x].ljust(max_x), curses.color_pair(PAIR_HEADER))
+        except curses.error:
+            pass
+
+    def render_inspector_modal(self, max_y, max_x):
+        if not self.inspecting_pid:
+            return
+            
+        try:
+            proc = psutil.Process(self.inspecting_pid)
+            pinfo = proc.as_dict(attrs=['pid', 'name', 'exe', 'cmdline', 'status', 'username', 'create_time', 'cpu_percent', 'memory_percent', 'memory_info', 'num_threads', 'io_counters', 'cwd', 'nice'])
+        except (psutil.NoSuchProcess, psutil.AccessDenied):
+            self.inspecting_pid = None
+            return
+
+        modal_w = min(80, max_x - 6)
+        modal_h = min(22, max_y - 4)
+        start_x = (max_x - modal_w) // 2
+        start_y = (max_y - modal_h) // 2
+
+        for y in range(modal_h):
+            self.stdscr.addstr(start_y + y, start_x, " " * modal_w, curses.color_pair(PAIR_NORMAL))
+            
+        self.stdscr.addstr(start_y, start_x, "╔" + "═" * (modal_w - 2) + "╗", curses.color_pair(PAIR_ACCENT_CYAN) | curses.A_BOLD)
+        for y in range(1, modal_h - 1):
+            self.stdscr.addstr(start_y + y, start_x, "║", curses.color_pair(PAIR_ACCENT_CYAN))
+            self.stdscr.addstr(start_y + y, start_x + modal_w - 1, "║", curses.color_pair(PAIR_ACCENT_CYAN))
+        self.stdscr.addstr(start_y + modal_h - 1, start_x, "╚" + "═" * (modal_w - 2) + "╝", curses.color_pair(PAIR_ACCENT_CYAN) | curses.A_BOLD)
+        
+        title = f" ⟦ PROCESS DEEP TELEMETRY: PID {pinfo['pid']} ⟧ "
+        self.stdscr.addstr(start_y, start_x + 3, title, curses.color_pair(PAIR_SELECTED))
+
+        lines = [
+            f"IDENTIFIER : {pinfo['name']} (PID: {pinfo['pid']}, NICE: {pinfo.get('nice', 0)})",
+            f"EXECUTABLE : {pinfo.get('exe', 'N/A')}",
+            f"DIRECTORY  : {pinfo.get('cwd', 'N/A')}",
+            f"COMMAND    : {' '.join(pinfo.get('cmdline') or ['N/A'])}",
+            f"USER/STATE : {pinfo.get('username')} │ STATE: {pinfo.get('status')}",
+            f"EXEC TIME  : {self.format_duration(time.time() - (pinfo.get('create_time') or time.time()))}",
+            f"THREADS    : {pinfo.get('num_threads', 1)} active worker threads",
+            f"CPU LOAD   : {pinfo.get('cpu_percent', 0.0):.2f}%",
+            f"BIOMEMORY  : RSS {self.format_bytes(pinfo.get('memory_info').rss if pinfo.get('memory_info') else 0)} ({pinfo.get('memory_percent', 0.0):.2f}%)",
+            "─────────────────────────────────────────────────────────────",
+            "ACTIONS: [k] SIGTERM  [K] SIGKILL  [s] SIGSTOP  [c] SIGCONT  [Esc/q] Close"
+        ]
+
+        for idx, line in enumerate(lines):
+            if idx < modal_h - 2:
+                self.stdscr.addstr(start_y + 2 + idx, start_x + 3, line[:modal_w - 6], curses.color_pair(PAIR_NORMAL))
+
+    def render_help_modal(self, max_y, max_x):
+        if not self.showing_help:
+            return
+
+        modal_w = min(74, max_x - 6)
+        modal_h = min(20, max_y - 4)
+        start_x = (max_x - modal_w) // 2
+        start_y = (max_y - modal_h) // 2
+
+        for y in range(modal_h):
+            self.stdscr.addstr(start_y + y, start_x, " " * modal_w, curses.color_pair(PAIR_NORMAL))
+
+        self.stdscr.addstr(start_y, start_x, "╔" + "═" * (modal_w - 2) + "╗", curses.color_pair(PAIR_ACCENT_CYAN) | curses.A_BOLD)
+        for y in range(1, modal_h - 1):
+            self.stdscr.addstr(start_y + y, start_x, "║", curses.color_pair(PAIR_ACCENT_CYAN))
+            self.stdscr.addstr(start_y + y, start_x + modal_w - 1, "║", curses.color_pair(PAIR_ACCENT_CYAN))
+        self.stdscr.addstr(start_y + modal_h - 1, start_x, "╚" + "═" * (modal_w - 2) + "╝", curses.color_pair(PAIR_ACCENT_CYAN) | curses.A_BOLD)
+        
+        title = " ⟦ XENOMON TELEMETRY COMMAND MANUAL ⟧ "
+        self.stdscr.addstr(start_y, start_x + 3, title, curses.color_pair(PAIR_SELECTED))
+
+        help_items = [
+            " NAVIGATION & SELECTION:",
+            "   Up / Down, j / k      : Select process row",
+            "   PageUp / PageDown     : Page through matrix",
+            "   Home / End, g / G     : Jump to top / bottom",
+            "",
+            " TELEMETRY CONTROLS & SORTING:",
+            "   c / m / p / u / t / n : Sort by CPU, MEM, PID, USER, TIME, NAME",
+            "   r                     : Invert current sort direction",
+            "   /                     : Enter real-time process search filter",
+            "   Space                 : Pause / Resume live telemetry stream",
+            "",
+            " PROCESS INTERVENTIONS:",
+            "   k                     : Send SIGTERM (Graceful Terminate)",
+            "   K                     : Send SIGKILL (Instant Force Vaporize)",
+            "   Enter / d             : Open Deep Process Diagnostic Inspector",
+            "   q / Esc               : Close modal / Exit Xenomon"
+        ]
+
+        for idx, line in enumerate(help_items):
+            if idx < modal_h - 2:
+                self.stdscr.addstr(start_y + 1 + idx, start_x + 3, line[:modal_w - 6], curses.color_pair(PAIR_NORMAL))
+
+    def handle_input(self):
+        try:
+            key = self.stdscr.getch()
+        except curses.error:
+            return
+
+        if key == -1:
+            return
+
+        if self.is_filtering:
+            if key in [10, 13, curses.KEY_ENTER]:
+                self.filter_text = self.filter_buffer
+                self.is_filtering = False
+                self.selected_idx = 0
+            elif key in [27]:
+                self.is_filtering = False
+                self.filter_buffer = self.filter_text
+            elif key in [curses.KEY_BACKSPACE, 127, 8]:
+                self.filter_buffer = self.filter_buffer[:-1]
+            elif 32 <= key <= 126:
+                self.filter_buffer += chr(key)
+            return
+
+        if self.showing_help:
+            if key in [ord('q'), 27, ord('?'), ord('h'), 10, 13]:
+                self.showing_help = False
+            return
+
+        if self.inspecting_pid:
+            if key in [ord('q'), 27]:
+                self.inspecting_pid = None
+            elif key == ord('k'):
+                try:
+                    os.kill(self.inspecting_pid, signal.SIGTERM)
+                except Exception:
+                    pass
+            elif key == ord('K'):
+                try:
+                    os.kill(self.inspecting_pid, signal.SIGKILL)
+                except Exception:
+                    pass
+            elif key == ord('s'):
+                try:
+                    os.kill(self.inspecting_pid, signal.SIGSTOP)
+                except Exception:
+                    pass
+            elif key == ord('c'):
+                try:
+                    os.kill(self.inspecting_pid, signal.SIGCONT)
+                except Exception:
+                    pass
+            return
+
+        if key in [ord('q'), 27]:
+            self.running = False
+        elif key in [curses.KEY_UP, ord('k')]:
+            self.selected_idx = max(0, self.selected_idx - 1)
+        elif key in [curses.KEY_DOWN, ord('j')]:
+            self.selected_idx = min(len(self.processes) - 1, self.selected_idx + 1)
+        elif key in [curses.KEY_PPAGE, 21]:
+            self.selected_idx = max(0, self.selected_idx - 15)
+        elif key in [curses.KEY_NPAGE, 4]:
+            self.selected_idx = min(len(self.processes) - 1, self.selected_idx + 15)
+        elif key in [curses.KEY_HOME, ord('g')]:
+            self.selected_idx = 0
+        elif key in [curses.KEY_END, ord('G')]:
+            self.selected_idx = max(0, len(self.processes) - 1)
+        elif key == ord('/'):
+            self.is_filtering = True
+            self.filter_buffer = self.filter_text
+        elif key == ord('c'):
+            if self.sort_by == 'cpu':
+                self.sort_reverse = not self.sort_reverse
+            else:
+                self.sort_by = 'cpu'
+                self.sort_reverse = True
+        elif key == ord('m'):
+            if self.sort_by == 'mem':
+                self.sort_reverse = not self.sort_reverse
+            else:
+                self.sort_by = 'mem'
+                self.sort_reverse = True
+        elif key == ord('p'):
+            if self.sort_by == 'pid':
+                self.sort_reverse = not self.sort_reverse
+            else:
+                self.sort_by = 'pid'
+                self.sort_reverse = False
+        elif key == ord('u'):
+            if self.sort_by == 'user':
+                self.sort_reverse = not self.sort_reverse
+            else:
+                self.sort_by = 'user'
+                self.sort_reverse = False
+        elif key == ord('t'):
+            if self.sort_by == 'time':
+                self.sort_reverse = not self.sort_reverse
+            else:
+                self.sort_by = 'time'
+                self.sort_reverse = True
+        elif key == ord('n'):
+            if self.sort_by == 'name':
+                self.sort_reverse = not self.sort_reverse
+            else:
+                self.sort_by = 'name'
+                self.sort_reverse = False
+        elif key == ord('r'):
+            self.sort_reverse = not self.sort_reverse
+        elif key == ord(' '):
+            self.paused = not self.paused
+        elif key in [ord('d'), 10, 13, curses.KEY_ENTER]:
+            if self.processes and 0 <= self.selected_idx < len(self.processes):
+                self.inspecting_pid = self.processes[self.selected_idx]['pid']
+        elif key == ord('k'):
+            if self.processes and 0 <= self.selected_idx < len(self.processes):
+                pid = self.processes[self.selected_idx]['pid']
+                try:
+                    os.kill(pid, signal.SIGTERM)
+                except Exception:
+                    pass
+        elif key == ord('K'):
+            if self.processes and 0 <= self.selected_idx < len(self.processes):
+                pid = self.processes[self.selected_idx]['pid']
+                try:
+                    os.kill(pid, signal.SIGKILL)
+                except Exception:
+                    pass
+        elif key in [ord('?'), ord('h')]:
+            self.showing_help = True
+
+    def run(self):
+        last_update = 0
+        while self.running:
+            now = time.time()
+            if now - last_update >= self.refresh_rate:
+                self.update_telemetry()
+                last_update = now
+
+            self.stdscr.erase()
+            max_y, max_x = self.stdscr.getmaxyx()
+            
+            if max_y < 15 or max_x < 60:
+                try:
+                    self.stdscr.addstr(0, 0, "TERMINAL WINDOW TOO SMALL FOR EXTRATERRESTRIAL HUD", curses.color_pair(PAIR_ACCENT_RED))
+                except curses.error:
+                    pass
+            else:
+                self.render_header(max_y, max_x)
+                
+                top_panels_h = min(7, (max_y - 4) // 3)
+                proc_table_h = max_y - 2 - top_panels_h - 1
+                
+                panel1_w = max_x // 3
+                panel2_w = max_x // 3
+                panel3_w = max_x - panel1_w - panel2_w
+                
+                self.render_quantum_cpu_panel(2, 0, top_panels_h, panel1_w)
+                self.render_biomemory_panel(2, panel1_w, top_panels_h, panel2_w)
+                self.render_subsystems_panel(2, panel1_w + panel2_w, top_panels_h, panel3_w)
+                
+                self.render_process_table(2 + top_panels_h, 0, proc_table_h, max_x)
+                self.render_footer(max_y, max_x)
+                
+                self.render_inspector_modal(max_y, max_x)
+                self.render_help_modal(max_y, max_x)
+
+            self.stdscr.refresh()
+            self.handle_input()
+            time.sleep(0.03)
+
+def main():
+    try:
+        curses.wrapper(lambda scr: XenomonApp(scr).run())
+    except KeyboardInterrupt:
+        pass
+
+if __name__ == "__main__":
+    main()

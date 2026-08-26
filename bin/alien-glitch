@@ -1,0 +1,59 @@
+#!/usr/bin/env python3
+import time
+import sys
+import random
+import shutil
+
+RUNES = ["⟁", "ᛯ", "⏣", "⌬", "⎔", "⍟", "ᚷ", "ᛞ", "⍹", "⍾", "⎎", "⍎", "⍕", "⍱", "⍲", "⍧", "⍪", "⍫", "⍰", "᚛", "᚜", "0", "1", "X", "E", "N", "O"]
+COLORS = [
+    "\033[38;2;57;255;20m",   # Neon Green
+    "\033[38;2;0;255;150m",  # Bioluminescent
+    "\033[38;2;0;240;255m",  # Cyan
+    "\033[38;2;200;80;255m", # Plasma Purple
+    "\033[38;2;255;230;0m",  # Amber
+    "\033[1;37m",             # Bright White
+]
+RESET = "\033[0m"
+
+DECREE = [
+    "TRANSMITTING QUANTUM HANDSHAKE TO PROXIMA B...",
+    "EXTRATERRESTRIAL SIGNAL CARRIER LOCKED (SECTOR 0x99)",
+    "DECRYPTING XENOMORPH SYNAPSE TELEMETRY DUMP...",
+    "WARP DRIVE COILS: 99.82% FLUX STABILITY",
+    "GRAVITATIONAL DEFLECTOR FIELD ACTIVE",
+    "MOTHERSHIP MESH PROTOCOL: SYNCHRONIZED",
+    "EARTH NODE INTERCEPT STATUS: PRIVILEGED ACCESS GRANTED",
+]
+
+def main():
+    cols = shutil.get_terminal_size((80, 24)).columns
+    lines = shutil.get_terminal_size((80, 24)).lines
+    
+    print("\033[2J\033[H", end="")
+    try:
+        # Phase 1: High speed glyph stream
+        for _ in range(45):
+            line = "".join(f"{random.choice(COLORS)}{random.choice(RUNES)}{RESET} " for _ in range(cols // 2))
+            print(line)
+            time.sleep(0.02)
+
+        # Phase 2: Decryption lines
+        print(f"\n\033[1;38;2;0;255;128m╔════════════════════════════════════════════════════════════════╗\033[0m")
+        print(f"\033[1;38;2;0;255;128m║   👽 XENO-MAINFRAME TACHYON DATA STREAM DECRYPTED 🛸           ║\033[0m")
+        print(f"\033[1;38;2;0;255;128m╚════════════════════════════════════════════════════════════════╝\033[0m\n")
+        
+        for msg in DECREE:
+            sys.stdout.write(" » ")
+            for char in msg:
+                sys.stdout.write(f"\033[1;38;2;57;255;20m{char}\033[0m")
+                sys.stdout.flush()
+                time.sleep(0.01)
+            print(f" \033[38;2;0;240;255m[DECRYPTED]\033[0m")
+            time.sleep(0.08)
+
+        print(f"\n\033[38;2;0;255;150m⟁ ᛯ ⏣ ⌬  ALL QUANTUM TELEMETRY DUMPED TO TERMINAL MEMORY  ⌬ ⏣ ᛯ ⟁\033[0m\n")
+    except KeyboardInterrupt:
+        print(f"\n{RESET}Stream interrupted.")
+
+if __name__ == "__main__":
+    main()

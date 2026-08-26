@@ -1,0 +1,8 @@
+[Plymouth Theme]
+Name=Solaris Alien Boot
+Description=Stylized 3D Sci-Fi Alien Spacecraft Boot Splash for Solaris OS
+ModuleName=script
+
+[script]
+ImageDir=/usr/share/plymouth/themes/solaris-alien-boot
+ScriptFile=/usr/share/plymouth/themes/solaris-alien-boot/solaris-alien-boot.script

@@ -1,0 +1,186 @@
+#!/usr/bin/env python3
+"""
+================================================================================
+🛸 SOLARIS SPACECRAFT COMMAND DECK — SYSTEM COMMAND INTERFACE & MANUAL 👽
+High-precision aerospace command matrix, manual, and telemetry executor
+================================================================================
+"""
+
+import sys
+import os
+import subprocess
+
+HOTKEY_MANUAL = [
+    {
+        "category": "01 // NAVIGATION & STATIONS",
+        "keys": [
+            ("SUPER + 1..6", "ENGAGE STATION (01 CMD, 02 ENG, 03 NAV, 04 COM, 05 SCI, 06 AUX)"),
+            ("SUPER + ← / →", "NAVIGATE CONSOLE COLUMN LEFT / RIGHT"),
+            ("SUPER + ↑ / ↓", "NAVIGATE CONSOLE STACK UP / DOWN"),
+            ("SUPER + H / J / K / L", "VI NAVIGATION (LEFT, DOWN, UP, RIGHT)"),
+            ("SUPER + O", "ORBITAL WORKSPACE OVERVIEW (ZOOM GRID)"),
+            ("SUPER + PAGE UP/DN", "TRANSIT TO PREVIOUS / NEXT STATION"),
+        ]
+    },
+    {
+        "category": "02 // CONSOLE & WINDOW MANAGEMENT",
+        "keys": [
+            ("SUPER + Q", "DECOMMISSION / CLOSE ACTIVE CONSOLE"),
+            ("SUPER + F", "MAXIMIZE CONSOLE VIEWPORT IN COLUMN"),
+            ("SUPER + SHIFT + F", "FULLSCREEN CONSOLE (EXPAND TO EDGES)"),
+            ("SUPER + R", "CYCLE CONSOLE WIDTH PRESET (33%, 50%, 67%)"),
+            ("SUPER + V", "DOCK / UNDOCK CONSOLE (TOGGLE FLOAT / TILE)"),
+            ("SUPER + SHIFT + V", "SWITCH FOCUS BETWEEN FLOATING AND TILING"),
+            ("SUPER + [ / ]", "CONSUME OR EXPEL CONSOLE INTO ADJACENT BAY"),
+            ("SUPER + C", "CENTER FOCUSED CONSOLE COLUMN ON SCREEN"),
+            ("SUPER + CTRL + ←/→", "MOVE CONSOLE COLUMN POSITION LEFT / RIGHT"),
+            ("SUPER + CTRL + 1..6", "TRANSFER CONSOLE TO SPECIFIED STATION"),
+        ]
+    },
+    {
+        "category": "03 // SHIP COMMANDS & TELEMETRY",
+        "keys": [
+            ("SUPER + T", "INITIALIZE PRIMARY SHIP TERMINAL (KITTY)"),
+            ("SUPER + D", "APPLICATION LAUNCH MATRIX (FUZZEL)"),
+            ("SUPER + /", "INTERACTIVE COMMAND MATRIX (ALIEN-CMD)"),
+            ("SUPER + SHIFT + /", "SPACECRAFT OPERATING MANUAL & HOTKEYS"),
+            ("CTRL + SHIFT + ESC", "PROCESS TELEMETRY NEXUS (XENOMON)"),
+            ("SUPER + SHIFT + M", "TOGGLE AETHERIS AUDIO MATRIX HUD"),
+            ("SUPER + SHIFT + D", "TOGGLE SOLARIS PERIPHERAL TELEMETRY"),
+            ("SUPER + ALT + L", "ENGAGE SECURITY LOCKDOWN (HYPRLOCK)"),
+            ("SUPER + SHIFT + E", "EXIT SOLARIS COMMAND SESSION"),
+        ]
+    },
+    {
+        "category": "04 // HARDWARE & AVIONICS CONTROLS",
+        "keys": [
+            ("XF86 AUDIO PLAY", "PLAY / PAUSE AUDIO STREAM (AETHERIS)"),
+            ("XF86 VOL +/-", "ADJUST PRIMARY AUDIO BUS VOLUME (±5%)"),
+            ("XF86 BRIGHT +/-", "ADJUST BRIDGE DISPLAY BACKLIGHT (±10%)"),
+            ("PRINT", "CAPTURE SCREENSHOT (SELECTION)"),
+            ("CTRL + PRINT", "CAPTURE FULL BRIDGE DISPLAY TO DISK"),
+        ]
+    }
+]
+
+COMMAND_DATABASE = [
+    # Telemetry & Processes
+    {"category": "TELEMETRY & PROCESS", "cmd": "xenomon", "desc": "Launch Process Nexus & Telemetry HUD", "tags": ["taskmanager", "top", "processes", "cpu", "ram", "kill"]},
+    {"category": "TELEMETRY & PROCESS", "cmd": "ps aux --sort=-%cpu | head -n 15", "desc": "Inspect Top 15 CPU Consuming Processes", "tags": ["cpu", "processes", "load"]},
+    {"category": "TELEMETRY & PROCESS", "cmd": "ps aux --sort=-%mem | head -n 15", "desc": "Inspect Top 15 Memory Consuming Processes", "tags": ["memory", "ram", "leak"]},
+    {"category": "TELEMETRY & PROCESS", "cmd": "pkill -9 <process>", "desc": "Force Terminate Specified Process Name", "tags": ["kill", "stop", "freeze"]},
+    {"category": "TELEMETRY & PROCESS", "cmd": "fastfetch", "desc": "Print Spacecraft System Diagnostics & Specs", "tags": ["specs", "fetch", "system", "alien"]},
+    {"category": "TELEMETRY & PROCESS", "cmd": "alien-scan", "desc": "Deep Kernel & Hardware Telemetry Scanner", "tags": ["scan", "hardware", "mothership"]},
+    {"category": "TELEMETRY & PROCESS", "cmd": "alien-radar", "desc": "Subspace Sensor Radar & Thermal Matrix", "tags": ["radar", "sensors", "thermal"]},
+
+    # Niri & Compositor
+    {"category": "NIRI COMPOSITOR", "cmd": "niri msg action toggle-overview", "desc": "Toggle Orbital Workspace Overview", "tags": ["overview", "workspaces", "niri"]},
+    {"category": "NIRI COMPOSITOR", "cmd": "niri msg action switch-preset-column-width", "desc": "Cycle Column Width Presets (1/3, 1/2, 2/3)", "tags": ["width", "resize", "column"]},
+    {"category": "NIRI COMPOSITOR", "cmd": "niri msg action toggle-window-floating", "desc": "Dock / Undock Focused Console (Float/Tile)", "tags": ["float", "tile", "window"]},
+    {"category": "NIRI COMPOSITOR", "cmd": "niri msg action center-column", "desc": "Center Focused Column on Screen", "tags": ["center", "column", "focus"]},
+    {"category": "NIRI COMPOSITOR", "cmd": "pkill waybar && nohup waybar >/dev/null 2>&1 &", "desc": "Restart System Status Rail (Waybar)", "tags": ["waybar", "reload", "restart"]},
+    {"category": "NIRI COMPOSITOR", "cmd": "solaris-lock", "desc": "Engage Security Matrix & Lock Screen", "tags": ["lock", "screen", "security"]},
+    {"category": "AUDIO BUS", "cmd": "solaris-voice-unlock --test", "desc": "Test Voice Command Recognizer & Mic Levels", "tags": ["voice", "mic", "unlock", "speech", "acoustic"]},
+
+    # Storage & Drives
+    {"category": "STORAGE TELEMETRY", "cmd": "df -hT", "desc": "Display Mounted Filesystem Capacity & Types", "tags": ["disk", "space", "storage", "mount"]},
+    {"category": "STORAGE TELEMETRY", "cmd": "du -sh * | sort -hr | head -n 15", "desc": "Inspect Largest Directories in Current Sector", "tags": ["size", "storage", "cleanup"]},
+    {"category": "STORAGE TELEMETRY", "cmd": "lsblk -f", "desc": "List Block Storage Partitions & UUIDs", "tags": ["disks", "nvme", "ssd", "partitions"]},
+
+    # Network & Avionics
+    {"category": "AVIONICS & COMMS", "cmd": "ip -br -c addr show", "desc": "Display Network Interfaces & IP Addresses", "tags": ["ip", "network", "interface", "wifi"]},
+    {"category": "AVIONICS & COMMS", "cmd": "ss -tulnp", "desc": "List Active Listening TCP/UDP Ports & PIDs", "tags": ["ports", "sockets", "network", "services"]},
+    {"category": "AVIONICS & COMMS", "cmd": "ping -c 4 1.1.1.1", "desc": "Test Subspace Network Latency & Packet Loss", "tags": ["ping", "latency", "dns"]},
+    {"category": "AVIONICS & COMMS", "cmd": "curl -s https://ipinfo.io/json | jq .", "desc": "Retrieve Public IP & Geolocation Telemetry", "tags": ["public", "ip", "location"]},
+
+    # Audio & WirePlumber
+    {"category": "AUDIO BUS", "cmd": "wpctl status", "desc": "Inspect PipeWire / WirePlumber Audio Endpoints", "tags": ["audio", "sound", "endpoints", "pipewire"]},
+    {"category": "AUDIO BUS", "cmd": "wpctl set-volume @DEFAULT_AUDIO_SINK@ 0.05+", "desc": "Increase Master Volume (+5%)", "tags": ["volume", "sound", "louder"]},
+    {"category": "AUDIO BUS", "cmd": "wpctl set-volume @DEFAULT_AUDIO_SINK@ 0.05-", "desc": "Decrease Master Volume (-5%)", "tags": ["volume", "sound", "quieter"]},
+    {"category": "AUDIO BUS", "cmd": "pavucontrol", "desc": "Open PipeWire / PulseAudio Volume Mixer", "tags": ["volume", "mixer", "gui"]}
+]
+
+def render_manual():
+    print("\033[2J\033[H", end="")
+    print("\033[1;38;2;0;240;255m╔═════════════════════════════════════════════════════════════════════════════════════════════════╗\033[0m")
+    print("\033[1;38;2;0;240;255m║   🛸 SOLARIS SPACECRAFT COMMAND DECK // PRIMARY OPERATING MANUAL & COMMAND MATRIX 👽    ║\033[0m")
+    print("\033[1;38;2;0;240;255m╚═════════════════════════════════════════════════════════════════════════════════════════════════╝\033[0m\n")
+
+    for cat_data in HOTKEY_MANUAL:
+        print(f"\033[1;38;2;0;180;235m┌── {cat_data['category']} ───────────────────────────────────────────────────────────────────\033[0m")
+        for key, desc in cat_data['keys']:
+            print(f"\033[38;2;40;60;80m│  \033[1;38;2;57;255;20m{key:<24}\033[38;2;223;248;246m{desc}\033[0m")
+        print("\033[38;2;40;60;80m└─────────────────────────────────────────────────────────────────────────────────────────────┘\033[0m\n")
+
+    print("\033[38;2;0;240;255m[ Press ENTER to open interactive command search, or Q to exit ]\033[0m")
+    try:
+        choice = input().strip().lower()
+        if choice in ['q', 'exit']:
+            return
+        interactive_fzf_mode()
+    except (KeyboardInterrupt, EOFError):
+        pass
+
+def interactive_fzf_mode():
+    fzf_path = os.path.expanduser("~/.local/bin/fzf")
+    if not os.path.exists(fzf_path):
+        fzf_path = "fzf"
+
+    lines = []
+    for item in COMMAND_DATABASE:
+        line = f"[{item['category'][:14]:<14}] {item['cmd']:<42} │ {item['desc']}"
+        lines.append((line, item['cmd']))
+
+    input_text = "\n".join([l[0] for l in lines])
+
+    fzf_cmd = [
+        fzf_path,
+        "--ansi",
+        "--header= ⟦ SOLARIS SPACECRAFT // COMMAND MATRIX ⟧ \n Select command to execute or copy (Esc to abort):",
+        "--prompt=🛸 SOLARIS-CMD ❯ ",
+        "--height=85%",
+        "--reverse",
+        "--border=rounded",
+        "--color=bg+:#0a121c,fg+:#dff8f6,hl:#00f0ff,hl+:#39ff7a,pointer:#00f0ff,border:#0099ff,header:#00f0ff"
+    ]
+
+    try:
+        proc = subprocess.Popen(fzf_cmd, stdin=subprocess.PIPE, stdout=subprocess.PIPE, text=True)
+        selected_line, _ = proc.communicate(input=input_text)
+        if proc.returncode == 0 and selected_line.strip():
+            selected_line = selected_line.strip()
+            for line, cmd in lines:
+                if selected_line.startswith(line[:35]):
+                    print(f"\n\033[1;38;2;0;240;255m⟦ COMMAND SELECTED ⟧\033[0m")
+                    print(f"\033[1;37mCommand: \033[1;38;2;57;255;20m{cmd}\033[0m\n")
+                    choice = input("Execute now? [Y/n/copy]: ").strip().lower()
+                    if choice in ['', 'y', 'yes']:
+                        print(f"\033[38;2;0;180;235m▶ Executing: {cmd}\033[0m\n")
+                        subprocess.run(cmd, shell=True)
+                    elif choice in ['c', 'copy']:
+                        subprocess.run(f"echo -n {repr(cmd)} | wl-copy 2>/dev/null || true", shell=True)
+                        print("\033[38;2;57;255;20m✔ Copied to Wayland clipboard!\033[0m")
+                    return
+    except Exception as e:
+        print(f"Error launching interactive matrix: {e}", file=sys.stderr)
+
+def main():
+    if len(sys.argv) > 1:
+        arg = sys.argv[1].lower()
+        if arg in ['--manual', '-m', '--hotkeys', '-h', 'help']:
+            render_manual()
+            return
+        query = " ".join(sys.argv[1:])
+        results = [c for c in COMMAND_DATABASE if query.lower() in c['cmd'].lower() or query.lower() in c['desc'].lower() or any(query.lower() in t.lower() for t in c['tags'])]
+        if not results:
+            print(f"\n\033[38;2;255;42;95m[!] No matching spacecraft commands found for: '{query}'\033[0m\n")
+            sys.exit(1)
+        print(f"\n\033[1;38;2;0;240;255m╔═⟦ COMMAND RESULTS: '{query}' ⟧═══════════════════════════════════════════\033[0m")
+        for item in results[:8]:
+            print(f"\033[38;2;0;180;235m║ \033[1;38;2;57;255;20m{item['cmd']:<42}\033[38;2;100;130;155m │ {item['desc']}\033[0m")
+        print("\033[1;38;2;0;240;255m╚════════════════════════════════════════════════════════════════════════════╝\033[0m\n")
+    else:
+        render_manual()
+
+if __name__ == "__main__":
+    main()

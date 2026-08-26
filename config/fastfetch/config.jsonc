@@ -1,0 +1,110 @@
+{
+  "$schema": "https://github.com/fastfetch-cli/fastfetch/raw/dev/doc/json_schema.json",
+  "logo": {
+    "source": "~/.config/fastfetch/alien.txt",
+    "type": "file-raw",
+    "padding": {
+      "top": 0,
+      "left": 1,
+      "right": 4
+    }
+  },
+  "display": {
+    "separator": "  │  "
+  },
+  "modules": [
+    {
+      "type": "title",
+      "key": "⟦ NODE ⟧",
+      "keyColor": "bright_cyan"
+    },
+    {
+      "type": "custom",
+      "format": "\u001b[38;2;30;60;85m─────────────────────────────────────────────\u001b[0m"
+    },
+    {
+      "type": "os",
+      "key": "⬡ PLATFORM  ",
+      "keyColor": "cyan",
+      "format": "Arch Linux (x86_64)"
+    },
+    {
+      "type": "host",
+      "key": "⬡ CHASSIS   ",
+      "keyColor": "blue",
+      "format": "Alienware 16 Aurora"
+    },
+    {
+      "type": "kernel",
+      "key": "⬡ CORE_SYS  ",
+      "keyColor": "cyan",
+      "format": "Linux 7.1.8-zen1"
+    },
+    {
+      "type": "uptime",
+      "key": "⬡ UPTIME    ",
+      "keyColor": "blue"
+    },
+    {
+      "type": "packages",
+      "key": "⬡ MODULES   ",
+      "keyColor": "cyan"
+    },
+    {
+      "type": "wm",
+      "key": "⬡ MATRIX_WM ",
+      "keyColor": "blue",
+      "format": "Niri 26.04 (Wayland)"
+    },
+    {
+      "type": "terminal",
+      "key": "⬡ CONSOLE   ",
+      "keyColor": "cyan"
+    },
+    {
+      "type": "cpu",
+      "key": "⬡ QUANTUM_CPU",
+      "keyColor": "bright_cyan",
+      "format": "Intel Core 7 240H @ 5.20 GHz"
+    },
+    {
+      "type": "gpu",
+      "key": "⬡ PHOTONIC_GPU",
+      "keyColor": "cyan",
+      "hideType": "integrated",
+      "format": "NVIDIA GeForce RTX 5050"
+    },
+    {
+      "type": "memory",
+      "key": "⬡ BIOMEMORY ",
+      "keyColor": "magenta",
+      "format": "{1} / {2} ({3})"
+    },
+    {
+      "type": "swap",
+      "key": "⬡ SWAP_BUFFER",
+      "keyColor": "blue",
+      "format": "{1} / {2}"
+    },
+    {
+      "type": "disk",
+      "key": "⬡ STORAGE   ",
+      "keyColor": "cyan",
+      "format": "{1} / {2} ({3})"
+    },
+    {
+      "type": "localip",
+      "key": "⬡ TELEMETRY ",
+      "keyColor": "blue"
+    },
+    {
+      "type": "custom",
+      "format": "\u001b[38;2;30;60;85m─────────────────────────────────────────────\u001b[0m"
+    },
+    {
+      "type": "colors",
+      "symbol": "circle"
+    }
+  ]
+}
+

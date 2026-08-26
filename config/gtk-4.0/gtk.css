@@ -1,0 +1,277 @@
+/* =============================================================================
+   🛸 SOLARIS SPACECRAFT // AEROSPACE DATA-NAVIGATION SYSTEM
+   Engineered for Nautilus (Files), GTK4 & Libadwaita Core Subsystems
+   Design Language: Deep Matte Graphite Chassis • Precision Laser Accents
+   Palette: Matte Charcoal (#0e121a) • Surface (#131924) • Muted Silver • Electric Cyan
+   ============================================================================= */
+
+/* -----------------------------------------------------------------------------
+   1. CORE PALETTE & LIBADWAITA SYSTEM DEFINITIONS
+   ----------------------------------------------------------------------------- */
+@define-color accent_color #38bdf8;
+@define-color accent_bg_color #38bdf8;
+@define-color accent_fg_color #0a0d14;
+
+@define-color window_bg_color #0e121a;
+@define-color window_fg_color #e6edf3;
+
+@define-color view_bg_color #0a0d14;
+@define-color view_fg_color #e6edf3;
+
+@define-color headerbar_bg_color #131924;
+@define-color headerbar_fg_color #e6edf3;
+@define-color headerbar_border_color rgba(56, 189, 248, 0.2);
+@define-color headerbar_backdrop_color #0e121a;
+
+@define-color sidebar_bg_color #0c1018;
+@define-color sidebar_fg_color #8b949e;
+@define-color sidebar_backdrop_color #0a0d14;
+
+@define-color card_bg_color #17202e;
+@define-color card_fg_color #e6edf3;
+@define-color card_border_color rgba(56, 189, 248, 0.14);
+
+@define-color popover_bg_color #131924;
+@define-color popover_fg_color #e6edf3;
+
+@define-color dialog_bg_color #131924;
+@define-color dialog_fg_color #e6edf3;
+
+@define-color destructive_color #ff2a5f;
+@define-color destructive_bg_color #ff2a5f;
+@define-color destructive_fg_color #ffffff;
+
+@define-color success_color #10b981;
+@define-color success_bg_color #10b981;
+@define-color success_fg_color #0a0d14;
+
+@define-color warning_color #f59e0b;
+@define-color warning_bg_color #f59e0b;
+@define-color warning_fg_color #0a0d14;
+
+@define-color error_color #ff2a5f;
+@define-color error_bg_color #ff2a5f;
+@define-color error_fg_color #ffffff;
+
+/* -----------------------------------------------------------------------------
+   2. MAIN WINDOW (DEEP GRAPHITE COCKPIT)
+   ----------------------------------------------------------------------------- */
+window.background,
+.nautilus-window {
+    background-color: #0e121a;
+    color: @window_fg_color;
+    font-family: "JetBrainsMono Nerd Font", monospace;
+}
+
+/* -----------------------------------------------------------------------------
+   3. FLIGHT-DECK HEADERBAR
+   ----------------------------------------------------------------------------- */
+headerbar,
+.nautilus-window headerbar {
+    background-color: #131924;
+    border-bottom: 1px solid rgba(56, 189, 248, 0.3);
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.6);
+    padding: 6px 12px;
+}
+
+headerbar .title {
+    font-family: "JetBrainsMono Nerd Font", monospace;
+    font-weight: 700;
+    font-size: 12px;
+    letter-spacing: 1.5px;
+    color: #e6edf3;
+}
+
+headerbar .subtitle {
+    font-family: "JetBrainsMono Nerd Font", monospace;
+    font-size: 9px;
+    letter-spacing: 0.8px;
+    color: #38bdf8;
+}
+
+/* -----------------------------------------------------------------------------
+   4. BREADCRUMB ROUTE CAPSULES (NAVIGATION SECTORS)
+   ----------------------------------------------------------------------------- */
+.path-bar button,
+.breadcrumbs button {
+    background-color: #141a26;
+    border: 1px solid rgba(56, 189, 248, 0.22);
+    border-radius: 4px;
+    color: #8b949e;
+    font-family: "JetBrainsMono Nerd Font", monospace;
+    font-size: 10px;
+    font-weight: 600;
+    letter-spacing: 0.6px;
+    padding: 4px 10px;
+    margin: 0 2px;
+}
+
+.path-bar button:hover,
+.breadcrumbs button:hover {
+    background-color: #1c2637;
+    border-color: #38bdf8;
+    color: #38bdf8;
+}
+
+.path-bar button:checked,
+.breadcrumbs button:checked {
+    background-color: rgba(56, 189, 248, 0.15);
+    border-color: #38bdf8;
+    color: #e6edf3;
+    font-weight: 700;
+}
+
+/* -----------------------------------------------------------------------------
+   5. NAVIGATION SIDEBAR (SHIP SYSTEMS)
+   ----------------------------------------------------------------------------- */
+.navigation-sidebar,
+.places-sidebar {
+    background-color: #0c1018;
+    border-right: 1px solid rgba(56, 189, 248, 0.15);
+    padding: 8px 4px;
+}
+
+.navigation-sidebar row,
+.places-sidebar row {
+    border-radius: 4px;
+    margin: 2px 6px;
+    padding: 6px 10px;
+    color: #8b949e;
+    font-family: "JetBrainsMono Nerd Font", monospace;
+    font-size: 11px;
+    border-left: 2px solid transparent;
+}
+
+.navigation-sidebar row:hover,
+.places-sidebar row:hover {
+    background-color: #17202e;
+    color: #e6edf3;
+    border-left: 2px solid rgba(56, 189, 248, 0.6);
+}
+
+.navigation-sidebar row:selected,
+.places-sidebar row:selected {
+    background-color: rgba(56, 189, 248, 0.12);
+    color: #38bdf8;
+    font-weight: 700;
+    border-left: 3px solid #38bdf8;
+}
+
+/* -----------------------------------------------------------------------------
+   6. FILE MATRIX VIEW (ATMOSPHERIC GRID)
+   ----------------------------------------------------------------------------- */
+.view,
+.nautilus-grid-view,
+.nautilus-list-view {
+    background-color: #0a0d14;
+    color: #e6edf3;
+    font-family: "JetBrainsMono Nerd Font", monospace;
+}
+
+/* Grid Item Container Modules */
+.nautilus-grid-view > child {
+    border-radius: 6px;
+    background-color: #131924;
+    border: 1px solid rgba(56, 189, 248, 0.12);
+    padding: 10px;
+    margin: 5px;
+}
+
+.nautilus-grid-view > child:hover {
+    background-color: #1c2637;
+    border-color: rgba(56, 189, 248, 0.4);
+}
+
+.nautilus-grid-view > child:selected {
+    background-color: #202d42;
+    border: 1px solid #38bdf8;
+    color: #ffffff;
+}
+
+/* List view row modules */
+.nautilus-list-view row {
+    border-bottom: 1px solid rgba(255, 255, 255, 0.03);
+    padding: 6px 12px;
+    border-left: 2px solid transparent;
+}
+
+.nautilus-list-view row:hover {
+    background-color: #17202e;
+    border-left: 2px solid rgba(56, 189, 248, 0.5);
+}
+
+.nautilus-list-view row:selected {
+    background-color: #202d42;
+    color: #ffffff;
+    border-left: 3px solid #38bdf8;
+}
+
+/* -----------------------------------------------------------------------------
+   7. FLOATING STATUS HUD
+   ----------------------------------------------------------------------------- */
+.floating-bar {
+    background-color: #131924;
+    border: 1px solid rgba(56, 189, 248, 0.3);
+    border-radius: 4px;
+    color: #38bdf8;
+    font-family: "JetBrainsMono Nerd Font", monospace;
+    font-size: 10px;
+    font-weight: 700;
+    padding: 4px 10px;
+    margin: 8px;
+}
+
+/* -----------------------------------------------------------------------------
+   8. INPUTS & SEARCH
+   ----------------------------------------------------------------------------- */
+entry,
+search-bar entry {
+    background-color: #0c1018;
+    border: 1px solid rgba(56, 189, 248, 0.2);
+    border-radius: 4px;
+    color: #e6edf3;
+    font-family: "JetBrainsMono Nerd Font", monospace;
+    padding: 6px 12px;
+}
+
+entry:focus,
+search-bar entry:focus {
+    border-color: #38bdf8;
+}
+
+/* -----------------------------------------------------------------------------
+   9. POPUPS & CONTEXT MENUS
+   ----------------------------------------------------------------------------- */
+popover,
+menu {
+    background-color: #131924;
+    border: 1px solid rgba(56, 189, 248, 0.25);
+    border-radius: 6px;
+    padding: 6px;
+}
+
+popover menuitem:hover,
+menu menuitem:hover {
+    background-color: rgba(56, 189, 248, 0.15);
+    color: #38bdf8;
+    border-radius: 4px;
+}
+
+/* -----------------------------------------------------------------------------
+   10. SCROLLBARS
+   ----------------------------------------------------------------------------- */
+scrollbar trough {
+    background-color: transparent;
+    border: none;
+}
+
+scrollbar slider {
+    background-color: rgba(56, 189, 248, 0.2);
+    border-radius: 3px;
+    min-width: 5px;
+    min-height: 5px;
+}
+
+scrollbar slider:hover {
+    background-color: #38bdf8;
+}

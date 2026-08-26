@@ -1,0 +1,90 @@
+/* ========================================================================== */
+/* 🛸 SOLARIS EXTRATERRESTRIAL DESKTOP BACKGROUND — MODULAR COMPONENT THEME   */
+/* ========================================================================== */
+
+* {
+    font-family: 'JetBrainsMono Nerd Font', 'Symbols Nerd Font', 'Noto Color Emoji', 'JetBrains Mono', monospace;
+    font-weight: 500;
+}
+
+window {
+    background-color: transparent;
+}
+
+/* Button & Action styling */
+button.solaris-btn {
+    background: linear-gradient(180deg, rgba(16, 26, 38, 0.85) 0%, rgba(6, 12, 18, 0.95) 100%);
+    border: 1px solid rgba(0, 166, 251, 0.4);
+    border-radius: 3px;
+    color: #e0f2fe;
+    padding: 6px 12px;
+    font-size: 11px;
+    font-weight: 600;
+    letter-spacing: 0.5px;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.6);
+    transition: all 180ms ease;
+}
+
+button.solaris-btn:hover {
+    background: linear-gradient(180deg, rgba(24, 42, 60, 0.95) 0%, rgba(12, 22, 32, 1.0) 100%);
+    border-color: #00e5ff;
+    color: #00e5ff;
+    box-shadow: 0 0 12px rgba(0, 229, 255, 0.35);
+}
+
+button.solaris-btn:active {
+    background: #00a6fb;
+    color: #000;
+}
+
+button.solaris-btn.danger {
+    border-color: rgba(255, 42, 95, 0.5);
+    color: #ff6b8b;
+}
+
+button.solaris-btn.danger:hover {
+    background: rgba(255, 42, 95, 0.25);
+    border-color: #ff2a5f;
+    color: #fff;
+    box-shadow: 0 0 12px rgba(255, 42, 95, 0.4);
+}
+
+button.solaris-btn.render-active {
+    background: linear-gradient(180deg, rgba(80, 10, 45, 0.95) 0%, rgba(35, 4, 20, 0.98) 100%);
+    border-color: #ff2a8d;
+    color: #ff94c2;
+    box-shadow: 0 0 14px rgba(255, 42, 141, 0.6);
+}
+
+button.solaris-btn.render-active:hover {
+    background: linear-gradient(180deg, rgba(120, 15, 65, 0.98) 0%, rgba(60, 8, 35, 1.0) 100%);
+    border-color: #ff66b2;
+    color: #ffffff;
+    box-shadow: 0 0 18px rgba(255, 42, 141, 0.85);
+}
+
+/* Dock styling */
+.dock-bar {
+    background: linear-gradient(180deg, rgba(10, 16, 24, 0.88) 0%, rgba(4, 8, 12, 0.94) 100%);
+    border: 1px solid rgba(0, 166, 251, 0.35);
+    border-radius: 6px;
+    padding: 4px 10px;
+    box-shadow: 0 4px 20px rgba(0, 5, 10, 0.8);
+}
+
+.dock-item-btn {
+    background: transparent;
+    border: 1px solid transparent;
+    border-radius: 4px;
+    padding: 6px 10px;
+    color: #7dd3fc;
+    font-size: 11px;
+    transition: all 150ms ease;
+}
+
+.dock-item-btn:hover {
+    background: rgba(0, 229, 255, 0.12);
+    border-color: rgba(0, 229, 255, 0.6);
+    color: #00e5ff;
+    box-shadow: 0 0 10px rgba(0, 229, 255, 0.3);
+}

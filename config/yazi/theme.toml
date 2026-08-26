@@ -1,0 +1,76 @@
+# ==============================================================================
+# 🛸 SOLARIS SPACECRAFT // CYBERPUNK YAZI THEME
+# ==============================================================================
+
+[manager]
+cwd = { fg = "#00f0ff", bold = true }
+
+# Hovered / Selected
+hovered         = { fg = "#040810", bg = "#00f0ff", bold = true }
+preview_hovered = { underline = true }
+
+# Find
+find_keyword  = { fg = "#00ffaa", bold = true, italic = true }
+find_position = { fg = "#ff2a5f", bold = true }
+
+# Marker
+marker_copied   = { fg = "#00ffaa", bg = "#00ffaa" }
+marker_cut      = { fg = "#ff2a5f", bg = "#ff2a5f" }
+marker_selected = { fg = "#00f0ff", bg = "#00f0ff" }
+
+# Tab
+tab_active   = { fg = "#040810", bg = "#00f0ff", bold = true }
+tab_inactive = { fg = "#94a3b8", bg = "#070c14" }
+tab_width    = 1
+
+# Border
+border_symbol = "│"
+border_style  = { fg = "#00f0ff" }
+
+[status]
+separator_open  = ""
+separator_close = ""
+separator_style = { fg = "#070c14", bg = "#070c14" }
+
+# Mode
+mode_normal = { fg = "#040810", bg = "#00f0ff", bold = true }
+mode_select = { fg = "#040810", bg = "#00ffaa", bold = true }
+mode_unset  = { fg = "#040810", bg = "#ff2a5f", bold = true }
+
+# Progress
+progress_label  = { fg = "#e0f2fe", bold = true }
+progress_normal = { fg = "#00f0ff", bg = "#070c14" }
+progress_error  = { fg = "#ff2a5f", bg = "#070c14" }
+
+# Permissions
+permissions_t = { fg = "#00f0ff" }
+permissions_r = { fg = "#ffb703" }
+permissions_w = { fg = "#ff2a5f" }
+permissions_x = { fg = "#00ffaa" }
+permissions_s = { fg = "#94a3b8" }
+
+[input]
+border   = { fg = "#00f0ff" }
+title    = { fg = "#00f0ff", bold = true }
+value    = { fg = "#e0f2fe" }
+selected = { bg = "#00f0ff", fg = "#040810" }
+
+[select]
+border   = { fg = "#00f0ff" }
+active   = { fg = "#00f0ff", bold = true }
+inactive = { fg = "#94a3b8" }
+
+[which]
+mask            = { bg = "#040810" }
+cand            = { fg = "#00f0ff" }
+rest            = { fg = "#94a3b8" }
+desc            = { fg = "#e0f2fe" }
+separator       = "  "
+separator_style = { fg = "#00f0ff" }
+
+[help]
+on      = { fg = "#00f0ff" }
+exec    = { fg = "#00ffaa" }
+desc    = { fg = "#94a3b8" }
+hovered = { bg = "#00f0ff", fg = "#040810", bold = true }
+footer  = { fg = "#040810", bg = "#00f0ff" }

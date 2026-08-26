@@ -1,0 +1,33 @@
+# ==============================================================================
+# 🛸 BLE.SH EXTRATERRESTRIAL-INDUSTRIAL THEME CONFIGURATION 👽
+# ==============================================================================
+
+# Fast completion & real-time autosuggestions
+bleopt complete_auto_delay=50
+bleopt complete_auto_history=1
+bleopt complete_menu_maxlines=10
+bleopt complete_menu_style=align-nowrap
+bleopt exec_errexit_mark=0
+bleopt prompt_ps1_final=''
+
+# Extraterrestrial Color Palette
+# Autosuggestion ghost text: Muted Subspace Steel
+ble-face -s auto_complete fg=60,bg=-1
+
+# Valid Command: Ionized Cyan Bold
+ble-face -s command_builtin fg=45,bold
+ble-face -s command_alias fg=51,bold
+ble-face -s command_function fg=39,bold
+ble-face -s command_file fg=50,bold
+
+# Error / Unknown Command: Containment Red
+ble-face -s syntax_error fg=197
+
+# Argument / Option: Xenomorph Emerald / Titanium Cyan
+ble-face -s argument_option fg=49
+ble-face -s syntax_varname fg=141
+ble-face -s syntax_param_expansion fg=141
+
+# Menu Selection: Deep Obsidian Background with Cyan Glow
+ble-face -s menu_filter_fixed fg=51,bg=234,bold
+ble-face -s menu_desc_default fg=244

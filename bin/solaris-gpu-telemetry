@@ -1,0 +1,26 @@
+#!/bin/bash
+if command -v nvidia-smi >/dev/null 2>&1; then
+    gpu_data=$(nvidia-smi --query-gpu=utilization.gpu,temperature.gpu,memory.used,memory.total --format=csv,noheader,nounits 2>/dev/null | head -n 1)
+    if [ -n "$gpu_data" ]; then
+        IFS=',' read -r util temp mem_used mem_total <<< "$gpu_data"
+        util=$(echo "$util" | tr -d ' ')
+        temp=$(echo "$temp" | tr -d ' ')
+        mem_used=$(echo "$mem_used" | tr -d ' ')
+        mem_total=$(echo "$mem_total" | tr -d ' ')
+        
+        mem_used_gb=$(awk "BEGIN {printf \"%.1f\", $mem_used/1024}")
+        mem_total_gb=$(awk "BEGIN {printf \"%.1f\", $mem_total/1024}")
+        
+        class="normal"
+        if [ "$util" -ge 80 ] || [ "$temp" -ge 80 ]; then
+            class="critical"
+        elif [ "$util" -ge 50 ] || [ "$temp" -ge 70 ]; then
+            class="warning"
+        fi
+        
+        echo "{\"text\": \"GPU ${util}% ${temp}°C\", \"tooltip\": \"GPU TELEMETRY // NVIDIA RTX 5050\\nLoad: ${util}%\\nThermal: ${temp}°C\\nVRAM: ${mem_used_gb} / ${mem_total_gb} GB\", \"class\": \"$class\"}"
+        exit 0
+    fi
+fi
+
+echo "{\"text\": \"GPU N/A\", \"tooltip\": \"GPU Offline\", \"class\": \"offline\"}"

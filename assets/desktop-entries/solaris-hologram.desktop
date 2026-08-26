@@ -1,0 +1,19 @@
+[Desktop Entry]
+Name=Solaris Holographic Workspace Controller
+GenericName=3D Holographic Workspace Matrix
+Comment=Futuristic 3D Holographic Workspace Visualization and Controller for Niri Wayland
+Exec=solaris-hologram --command-center
+Icon=preferences-desktop-display
+Terminal=false
+Type=Application
+Categories=Utility;System;Settings;
+StartupNotify=true
+Actions=Toggle;Background;
+
+[Desktop Action Toggle]
+Name=Toggle Hologram Command Matrix
+Exec=solaris-hologram --toggle
+
+[Desktop Action Background]
+Name=Start Background Hologram Layer
+Exec=solaris-hologram --background

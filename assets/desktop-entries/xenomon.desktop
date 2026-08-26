@@ -1,0 +1,10 @@
+[Desktop Entry]
+Name=Xenomon Task Manager
+Comment=Extraterrestrial-Industrial Task Manager and Core Telemetry Nexus
+Exec=kitty --class=xenomon-hud -e xenomon
+Icon=utilities-system-monitor
+Terminal=false
+Type=Application
+Categories=System;Monitor;
+Keywords=task;manager;top;process;system;monitor;alien;telemetry;
+StartupWMClass=xenomon-hud

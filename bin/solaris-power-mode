@@ -1,0 +1,47 @@
+#!/usr/bin/env bash
+# ==============================================================================
+# 🛸 SOLARIS POWER MODE SWITCHER & CYCLER
+# ==============================================================================
+
+ACTION="${1:-cycle}"
+
+get_current() {
+    powerprofilesctl get 2>/dev/null || cat /sys/firmware/acpi/platform_profile 2>/dev/null || echo "balanced"
+}
+
+set_profile() {
+    local target="$1"
+    powerprofilesctl set "$target" 2>/dev/null || true
+}
+
+case "$ACTION" in
+    performance|overclock|max)
+        set_profile "performance"
+        ;;
+    balanced|nominal)
+        set_profile "balanced"
+        ;;
+    saver|cryo|powersave|power-saver)
+        set_profile "power-saver"
+        ;;
+    cycle|next)
+        current=$(get_current)
+        if [[ "$current" == "performance" ]]; then
+            set_profile "power-saver"
+        elif [[ "$current" == "power-saver" || "$current" == "powersave" || "$current" == "quiet" ]]; then
+            set_profile "balanced"
+        else
+            set_profile "performance"
+        fi
+        ;;
+    render|rendering)
+        solaris-render-mode toggle
+        ;;
+    status|get)
+        get_current
+        ;;
+    *)
+        echo "Usage: solaris-power-mode [performance|balanced|saver|render|cycle|status]"
+        exit 1
+        ;;
+esac
