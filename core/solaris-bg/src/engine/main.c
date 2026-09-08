@@ -4,9 +4,13 @@
 #include <signal.h>
 #include <math.h>
 
+#define MAX_ENGINE_MONITORS 8
 typedef struct {
     GtkWidget *window;
     GtkWidget *drawing_area;
+    GtkWidget *windows[MAX_ENGINE_MONITORS];
+    GtkWidget *drawing_areas[MAX_ENGINE_MONITORS];
+    int view_count;
     cpu_telemetry_t cpu;
     mem_telemetry_t mem;
     gpu_telemetry_t gpu;
@@ -225,6 +229,7 @@ static gboolean on_draw(GtkWidget *widget, cairo_t *cr, gpointer user_data) {
     // Lower: Cooling Turbine Fan
     double turb_cx = b3_x + 44.0;
     double turb_cy = cur_y + 164.0;
+    cairo_new_path(cr);
     cairo_draw_cooling_turbine(cr, turb_cx, turb_cy, 28.0, (int)effective_fan, g_app.pwr.temp_c, g_app.gpu.tensor_phase);
 
     double turb_info_x = b3_x + 86.0;
@@ -336,8 +341,10 @@ static gboolean on_anim_tick(gpointer user_data) {
         if (g_app.fan_boost < 0.0) g_app.fan_boost = 0.0;
     }
 
-    if (g_app.drawing_area) {
-        gtk_widget_queue_draw(g_app.drawing_area);
+    for (int i = 0; i < g_app.view_count; i++) {
+        if (g_app.drawing_areas[i]) {
+            gtk_widget_queue_draw(g_app.drawing_areas[i]);
+        }
     }
     return G_SOURCE_CONTINUE;
 }
@@ -369,29 +376,45 @@ int main(int argc, char **argv) {
     update_power_telemetry(&g_app.pwr);
     update_workspace_telemetry(&g_app.ws);
 
-    g_app.window = gtk_window_new(GTK_WINDOW_TOPLEVEL);
-    solaris_setup_layer_window(g_app.window, "solaris-bg-engine",
-                               1674, 220,
-                               FALSE, TRUE, TRUE, TRUE, // Bottom Console Anchor
-                               0, 56, 16, 16);
+    GdkDisplay *display = gdk_display_get_default();
+    int n_monitors = display ? gdk_display_get_n_monitors(display) : 1;
+    g_app.view_count = 0;
 
-    g_app.drawing_area = gtk_drawing_area_new();
-    gtk_widget_add_events(g_app.drawing_area,
-                          GDK_BUTTON_PRESS_MASK |
-                          GDK_POINTER_MOTION_MASK |
-                          GDK_LEAVE_NOTIFY_MASK);
+    for (int i = 0; i < n_monitors && i < MAX_ENGINE_MONITORS; i++) {
+        GdkMonitor *mon = display ? gdk_display_get_monitor(display, i) : NULL;
+        GtkWidget *win = gtk_window_new(GTK_WINDOW_TOPLEVEL);
+        solaris_setup_layer_window_for_monitor(win, mon, "solaris-bg-engine",
+                                               1674, 220,
+                                               FALSE, TRUE, TRUE, TRUE, // Bottom Console Anchor
+                                               0, 56, 16, 16);
 
-    g_signal_connect(g_app.drawing_area, "draw", G_CALLBACK(on_draw), NULL);
-    g_signal_connect(g_app.drawing_area, "button-press-event", G_CALLBACK(on_button_press), NULL);
+        GtkWidget *da = gtk_drawing_area_new();
+        gtk_widget_add_events(da,
+                              GDK_BUTTON_PRESS_MASK |
+                              GDK_POINTER_MOTION_MASK |
+                              GDK_LEAVE_NOTIFY_MASK);
 
-    gtk_container_add(GTK_CONTAINER(g_app.window), g_app.drawing_area);
+        g_signal_connect(da, "draw", G_CALLBACK(on_draw), NULL);
+        g_signal_connect(da, "button-press-event", G_CALLBACK(on_button_press), NULL);
+
+        gtk_container_add(GTK_CONTAINER(win), da);
+        gtk_widget_show_all(win);
+
+        g_app.windows[g_app.view_count] = win;
+        g_app.drawing_areas[g_app.view_count] = da;
+        g_app.view_count++;
+    }
+
+    if (g_app.view_count > 0) {
+        g_app.window = g_app.windows[0];
+        g_app.drawing_area = g_app.drawing_areas[0];
+    }
 
     // Fast 20 FPS animation tick
     g_timeout_add(50, on_anim_tick, NULL);
     // 1.0s telemetry poll tick
     g_app.timer_id = g_timeout_add(1000, update_telemetry_tick, NULL);
 
-    gtk_widget_show_all(g_app.window);
     gtk_main();
     return 0;
 }

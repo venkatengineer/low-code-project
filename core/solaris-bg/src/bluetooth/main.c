@@ -15,9 +15,14 @@ typedef struct {
     gboolean connected;
 } bt_dev_entry_t;
 
+#define MAX_BT_MONITORS 8
+
 typedef struct {
     GtkWidget *window;
     GtkWidget *drawing_area;
+    GtkWidget *windows[MAX_BT_MONITORS];
+    GtkWidget *drawing_areas[MAX_BT_MONITORS];
+    int view_count;
     double time_sec;
     guint anim_timer_id;
     guint telem_timer_id;
@@ -39,6 +44,14 @@ typedef struct {
 } bt_app_t;
 
 static bt_app_t g_app;
+
+static void redraw_all_views(void) {
+    for (int i = 0; i < g_app.view_count; i++) {
+        if (g_app.drawing_areas[i]) {
+            gtk_widget_queue_draw(g_app.drawing_areas[i]);
+        }
+    }
+}
 
 static void query_real_bt_state(void) {
     // 1. Hardware Presence
@@ -155,9 +168,7 @@ static void trigger_bt_rescan(void) {
     if (g_app.has_bluez) {
         g_spawn_command_line_async("sh -c 'bluetoothctl --timeout 6 scan on &'", NULL);
     }
-    if (g_app.drawing_area) {
-        gtk_widget_queue_draw(g_app.drawing_area);
-    }
+    redraw_all_views();
 }
 
 // Toggle Bluetooth RF Radio Power
@@ -168,9 +179,7 @@ static void trigger_rf_toggle(void) {
         g_spawn_command_line_async("sh -c 'bluetoothctl power off 2>/dev/null; rfkill block bluetooth || true'", NULL);
     }
     query_real_bt_state();
-    if (g_app.drawing_area) {
-        gtk_widget_queue_draw(g_app.drawing_area);
-    }
+    redraw_all_views();
 }
 
 // Connect / Disconnect Device Action
@@ -186,9 +195,7 @@ static void trigger_device_toggle(int idx) {
     }
     g_spawn_command_line_async(cmd, NULL);
     dev->connected = !dev->connected;
-    if (g_app.drawing_area) {
-        gtk_widget_queue_draw(g_app.drawing_area);
-    }
+    redraw_all_views();
 }
 
 // Launch Pair Wizard in Terminal
@@ -754,7 +761,7 @@ static gboolean on_motion_notify(GtkWidget *widget, GdkEventMotion *event, gpoin
     }
 
     if (old_hover != g_app.hovered_idx) {
-        gtk_widget_queue_draw(widget);
+        redraw_all_views();
     }
     return FALSE;
 }
@@ -769,9 +776,7 @@ static gboolean on_animation_tick(gpointer user_data) {
             query_real_bt_state();
         }
     }
-    if (g_app.drawing_area) {
-        gtk_widget_queue_draw(g_app.drawing_area);
-    }
+    redraw_all_views();
     return G_SOURCE_CONTINUE;
 }
 
@@ -779,9 +784,7 @@ static gboolean on_telem_tick(gpointer user_data) {
     (void)user_data;
     query_real_bt_state();
     solaris_trim_memory();
-    if (g_app.drawing_area) {
-        gtk_widget_queue_draw(g_app.drawing_area);
-    }
+    redraw_all_views();
     return G_SOURCE_CONTINUE;
 }
 
@@ -799,30 +802,46 @@ int main(int argc, char **argv) {
 
     query_real_bt_state();
 
-    g_app.window = gtk_window_new(GTK_WINDOW_TOPLEVEL);
-    solaris_setup_layer_window(g_app.window, "solaris-bg-bluetooth",
-                                490, 280,
-                                TRUE, FALSE, FALSE, TRUE, // Top-Right anchor
-                                44, 0, 0, 16);
+    GdkDisplay *display = gdk_display_get_default();
+    int n_monitors = display ? gdk_display_get_n_monitors(display) : 1;
+    g_app.view_count = 0;
 
-    g_app.drawing_area = gtk_drawing_area_new();
-    gtk_widget_add_events(g_app.drawing_area,
-                          GDK_BUTTON_PRESS_MASK |
-                          GDK_POINTER_MOTION_MASK |
-                          GDK_SCROLL_MASK |
-                          GDK_SMOOTH_SCROLL_MASK |
-                          GDK_LEAVE_NOTIFY_MASK);
+    for (int i = 0; i < n_monitors && i < MAX_BT_MONITORS; i++) {
+        GdkMonitor *mon = display ? gdk_display_get_monitor(display, i) : NULL;
+        GtkWidget *win = gtk_window_new(GTK_WINDOW_TOPLEVEL);
+        solaris_setup_layer_window_for_monitor(win, mon, "solaris-bg-bluetooth",
+                                                490, 280,
+                                                TRUE, FALSE, FALSE, TRUE, // Top-Right anchor
+                                                44, 0, 0, 16);
 
-    g_signal_connect(g_app.drawing_area, "draw", G_CALLBACK(on_draw), NULL);
-    g_signal_connect(g_app.drawing_area, "button-press-event", G_CALLBACK(on_button_press), NULL);
-    g_signal_connect(g_app.drawing_area, "motion-notify-event", G_CALLBACK(on_motion_notify), NULL);
-    g_signal_connect(g_app.drawing_area, "scroll-event", G_CALLBACK(on_scroll_event), NULL);
-    gtk_container_add(GTK_CONTAINER(g_app.window), g_app.drawing_area);
+        GtkWidget *da = gtk_drawing_area_new();
+        gtk_widget_add_events(da,
+                              GDK_BUTTON_PRESS_MASK |
+                              GDK_POINTER_MOTION_MASK |
+                              GDK_SCROLL_MASK |
+                              GDK_SMOOTH_SCROLL_MASK |
+                              GDK_LEAVE_NOTIFY_MASK);
+
+        g_signal_connect(da, "draw", G_CALLBACK(on_draw), NULL);
+        g_signal_connect(da, "button-press-event", G_CALLBACK(on_button_press), NULL);
+        g_signal_connect(da, "motion-notify-event", G_CALLBACK(on_motion_notify), NULL);
+        g_signal_connect(da, "scroll-event", G_CALLBACK(on_scroll_event), NULL);
+        gtk_container_add(GTK_CONTAINER(win), da);
+        gtk_widget_show_all(win);
+
+        g_app.windows[g_app.view_count] = win;
+        g_app.drawing_areas[g_app.view_count] = da;
+        g_app.view_count++;
+    }
+
+    if (g_app.view_count > 0) {
+        g_app.window = g_app.windows[0];
+        g_app.drawing_area = g_app.drawing_areas[0];
+    }
 
     g_app.anim_timer_id = g_timeout_add(40, on_animation_tick, NULL);
     g_app.telem_timer_id = g_timeout_add(2500, on_telem_tick, NULL);
 
-    gtk_widget_show_all(g_app.window);
     gtk_main();
     return 0;
 }

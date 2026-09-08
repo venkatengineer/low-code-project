@@ -1,0 +1,135 @@
+#!/usr/bin/env bash
+# ==============================================================================
+# 🛸 SOLARIS OS // AVIONICS STORAGE PURGE & CACHE PURIFICATION UTILITY
+# Cleans unnecessary system caches, package archives, build transforms, and logs.
+# ==============================================================================
+set -e
+
+OUTPUT_JSON=false
+if [[ "$1" == "--json" ]]; then
+    OUTPUT_JSON=true
+fi
+
+# Get available bytes on / before cleanup
+get_avail_kb() {
+    df -k / | awk 'NR==2 {print $4}'
+}
+
+BEFORE_KB=$(get_avail_kb)
+CLEANED_ITEMS=()
+
+log_clean() {
+    local desc="$1"
+    if [[ "$OUTPUT_JSON" != true ]]; then
+        echo -e "\033[0;36m[PURGE]\033[0m $desc"
+    fi
+}
+
+# 1. Package Cache (pacman)
+if [[ -d /var/cache/pacman/pkg ]]; then
+    PKG_SIZE=$(sudo du -sh /var/cache/pacman/pkg 2>/dev/null | awk '{print $1}')
+    if [[ -n "$PKG_SIZE" && "$PKG_SIZE" != "0" ]]; then
+        log_clean "Purging pacman package archives ($PKG_SIZE)..."
+        sudo rm -rf /var/cache/pacman/pkg/* 2>/dev/null || true
+        CLEANED_ITEMS+=("Pacman package archives ($PKG_SIZE)")
+    fi
+fi
+
+# 2. AUR build cache (yay)
+if [[ -d "${HOME}/.cache/yay" ]]; then
+    YAY_SIZE=$(du -sh "${HOME}/.cache/yay" 2>/dev/null | awk '{print $1}')
+    if [[ -n "$YAY_SIZE" && "$YAY_SIZE" != "0" ]]; then
+        log_clean "Purging AUR build cache ($YAY_SIZE)..."
+        rm -rf "${HOME}/.cache/yay/"* 2>/dev/null || true
+        CLEANED_ITEMS+=("AUR build cache ($YAY_SIZE)")
+    fi
+fi
+
+# 3. NPM cache
+if [[ -d "${HOME}/.npm/_cacache" ]]; then
+    NPM_SIZE=$(du -sh "${HOME}/.npm/_cacache" 2>/dev/null | awk '{print $1}')
+    if [[ -n "$NPM_SIZE" && "$NPM_SIZE" != "0" ]]; then
+        log_clean "Purging NPM tarball cache ($NPM_SIZE)..."
+        rm -rf "${HOME}/.npm/_cacache" 2>/dev/null || true
+        CLEANED_ITEMS+=("NPM package cache ($NPM_SIZE)")
+    fi
+fi
+
+# 4. Gradle transforms cache (regenerates on build)
+for gdir in "${HOME}/.gradle/caches/"*"/transforms"; do
+    if [[ -d "$gdir" ]]; then
+        G_SIZE=$(du -sh "$gdir" 2>/dev/null | awk '{print $1}')
+        if [[ -n "$G_SIZE" && "$G_SIZE" != "0" ]]; then
+            log_clean "Purging Gradle transforms ($gdir: $G_SIZE)..."
+            rm -rf "$gdir" 2>/dev/null || true
+            CLEANED_ITEMS+=("Gradle transforms ($G_SIZE)")
+        fi
+    fi
+done
+
+# 5. Spotify streaming cache
+if [[ -d "${HOME}/.cache/spotify" ]]; then
+    SPOT_SIZE=$(du -sh "${HOME}/.cache/spotify" 2>/dev/null | awk '{print $1}')
+    if [[ -n "$SPOT_SIZE" && "$SPOT_SIZE" != "0" ]]; then
+        log_clean "Purging Spotify streaming cache ($SPOT_SIZE)..."
+        rm -rf "${HOME}/.cache/spotify/Data" "${HOME}/.cache/spotify/Storage" 2>/dev/null || true
+        CLEANED_ITEMS+=("Spotify streaming cache ($SPOT_SIZE)")
+    fi
+fi
+
+# 6. Tracker metadata cache
+if [[ -d "${HOME}/.cache/tracker3" ]]; then
+    TRACK_SIZE=$(du -sh "${HOME}/.cache/tracker3" 2>/dev/null | awk '{print $1}')
+    if [[ -n "$TRACK_SIZE" && "$TRACK_SIZE" != "0" ]]; then
+        log_clean "Purging Tracker index cache ($TRACK_SIZE)..."
+        rm -rf "${HOME}/.cache/tracker3" 2>/dev/null || true
+        CLEANED_ITEMS+=("Tracker metadata cache ($TRACK_SIZE)")
+    fi
+fi
+
+# 7. Thumbnails cache
+if [[ -d "${HOME}/.cache/thumbnails" ]]; then
+    THUMB_SIZE=$(du -sh "${HOME}/.cache/thumbnails" 2>/dev/null | awk '{print $1}')
+    if [[ -n "$THUMB_SIZE" && "$THUMB_SIZE" != "0" ]]; then
+        log_clean "Purging thumbnail cache ($THUMB_SIZE)..."
+        rm -rf "${HOME}/.cache/thumbnails/"* 2>/dev/null || true
+        CLEANED_ITEMS+=("Thumbnail cache ($THUMB_SIZE)")
+    fi
+fi
+
+# 8. Journal logs vacuuming (retain last 3 days or 50MB)
+log_clean "Vacuuming system journal logs..."
+sudo journalctl --vacuum-size=50M --vacuum-time=3d >/dev/null 2>&1 || true
+
+# 9. Clear old temp files
+log_clean "Purging old temporary session files..."
+find /tmp -user "$USER" -atime +2 -delete 2>/dev/null || true
+
+# Calculate reclaimed space
+AFTER_KB=$(get_avail_kb)
+FREED_KB=$(( AFTER_KB - BEFORE_KB ))
+if (( FREED_KB < 0 )); then FREED_KB=0; fi
+FREED_MB=$(( FREED_KB / 1024 ))
+AVAIL_GB=$(df -h / | awk 'NR==2 {print $4}')
+
+if [[ "$OUTPUT_JSON" == true ]]; then
+    python3 -c "
+import json
+print(json.dumps({
+    'success': True,
+    'freedMB': $FREED_MB,
+    'freedFormatted': f'{$FREED_MB} MB' if $FREED_MB < 1024 else f'{$FREED_MB / 1024:.2f} GB',
+    'availableSpace': '$AVAIL_GB',
+    'cleanedItems': $(python3 -c "import json; print(json.dumps('${CLEANED_ITEMS[*]}'.split('  ')))" 2>/dev/null || echo '[]')
+}))"
+else
+    echo ""
+    echo -e "\033[1;32m✓ STORAGE PURGE COMPLETE\033[0m"
+    if (( FREED_MB >= 1024 )); then
+        FREED_GB=$(awk "BEGIN {printf \"%.2f\", $FREED_MB / 1024}")
+        echo -e "\033[0;36mReclaimed Space:\033[0m \033[1;37m${FREED_GB} GB\033[0m"
+    else
+        echo -e "\033[0;36mReclaimed Space:\033[0m \033[1;37m${FREED_MB} MB\033[0m"
+    fi
+    echo -e "\033[0;36mAvailable on /:\033[0m  \033[1;37m${AVAIL_GB}\033[0m"
+fi

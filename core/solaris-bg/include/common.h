@@ -66,6 +66,13 @@ void solaris_setup_layer_window(GtkWidget *window, const char *title,
                                 int margin_top, int margin_bottom,
                                 int margin_left, int margin_right);
 
+void solaris_setup_layer_window_for_monitor(GtkWidget *window, GdkMonitor *monitor, const char *title,
+                                            int width, int height,
+                                            gboolean anchor_top, gboolean anchor_bottom,
+                                            gboolean anchor_left, gboolean anchor_right,
+                                            int margin_top, int margin_bottom,
+                                            int margin_left, int margin_right);
+
 // CSS loader
 void solaris_load_css(void);
 

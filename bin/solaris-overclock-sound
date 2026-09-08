@@ -1,0 +1,196 @@
+#!/usr/bin/env python3
+"""
+🛸 SOLARIS OS // OVERCLOCK SOUND SELECTOR & AUDITION ENGINE
+100% Handcrafted Procedural Physical Acoustic Sound Models.
+Zero internet clips, zero cartoon beeps.
+"""
+
+import os
+import sys
+import shutil
+import subprocess
+
+CANDIDATES_DIR = os.path.expanduser("~/.local/share/solaris/sounds/candidates")
+ACTIVE_SOUND = os.path.expanduser("~/.local/share/solaris/sounds/warp_overclock.wav")
+REPO_SOUND = os.path.expanduser("~/solaris-os/assets/sounds/solaris/warp_overclock.wav")
+
+CANDIDATES = [
+    {
+        "id": "1",
+        "name": "titanium_v10",
+        "file": "1_titanium_v10_twin_turbo.wav",
+        "title": "🏎️ Titanium V10 Twin-Turbo Rev (100% Procedural Engine Model)",
+        "desc": "Physical acoustic model: Asymmetric cylinder combustion pulses (2,200 ➔ 9,400 RPM) + titanium exhaust pipe rasp + twin-turbo spool & blow-off flutter + sub-bass punch (1.10s).",
+    },
+    {
+        "id": "2",
+        "name": "heavy_v8",
+        "file": "2_heavy_v8_muscle_throat.wav",
+        "title": "🐂 Heavy Crossplane V8 Muscle Throat (100% Procedural V8 Model)",
+        "desc": "Physical acoustic model: Deep crossplane V8 firing harmonics (1,800 ➔ 7,600 RPM) + heavy exhaust throat growl + decel crackles + 36Hz subwoofer impact (1.15s).",
+    },
+    {
+        "id": "3",
+        "name": "supercharged_flatplane",
+        "file": "3_supercharged_flatplane_v8.wav",
+        "title": "⚡ Supercharged Flat-Plane Racing Screamer",
+        "desc": "Physical acoustic model: 10,500 RPM flat-plane scream + roots supercharger blower gear whine ascending seamlessly (1.05s).",
+    },
+    {
+        "id": "4",
+        "name": "fusion_thruster",
+        "file": "4_hyperspace_fusion_surge.wav",
+        "title": "🛸 Hyperspace Fusion Propulsion Surge",
+        "desc": "Physical acoustic model: Spacecraft fusion thruster dual-rotor acceleration (80Hz ➔ 960Hz) + plasma turbulence + sub-harmonic gravity wave (1.15s).",
+    },
+]
+
+def is_audio_muted():
+    """Returns True if the system audio sink is muted or volume is zero."""
+    try:
+        res = subprocess.run(
+            ["wpctl", "get-volume", "@DEFAULT_AUDIO_SINK@"],
+            capture_output=True, text=True, timeout=1, check=False
+        )
+        if res.returncode == 0:
+            out = res.stdout.strip()
+            if "[MUTED]" in out:
+                return True
+            parts = out.split()
+            if len(parts) >= 2:
+                try:
+                    vol = float(parts[1])
+                    if vol <= 0.001:
+                        return True
+                except ValueError:
+                    pass
+    except Exception:
+        pass
+
+    try:
+        res = subprocess.run(
+            ["amixer", "get", "Master"],
+            capture_output=True, text=True, timeout=1, check=False
+        )
+        if res.returncode == 0 and "[off]" in res.stdout:
+            return True
+    except Exception:
+        pass
+
+    return False
+
+def play_sound(path):
+    if not os.path.exists(path):
+        print(f"Error: Sound file not found: {path}")
+        return False
+    if is_audio_muted():
+        print("Audio is muted -- remaining completely silent.")
+        return False
+    env = os.environ.copy()
+    uid = os.getuid()
+    env["XDG_RUNTIME_DIR"] = os.environ.get("XDG_RUNTIME_DIR", f"/run/user/{uid}")
+    env["PULSE_SERVER"] = f"/run/user/{uid}/pulse/native"
+
+    for player in [
+        ["paplay", path],
+        ["pw-play", path],
+        ["aplay", "-D", "default", "-q", path],
+        ["ffplay", "-nodisp", "-autoexit", "-loglevel", "quiet", path],
+    ]:
+        try:
+            res = subprocess.run(player, env=env, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL, check=False)
+            if res.returncode == 0:
+                return True
+        except Exception:
+            continue
+    return False
+
+def print_help():
+    print("🛸 SOLARIS PROCEDURAL OVERCLOCK SOUND SELECTOR")
+    print("===============================================")
+    print("Usage: solaris-overclock-sound <command> [id|name]")
+    print("\nCommands:")
+    print("  list                List all handcrafted procedural acoustic models")
+    print("  test <1-4|name>     Play/audition a sound model")
+    print("  set <1-4|name>      Set the sound model as active Overclock sound")
+    print("  current             Play the currently active Overclock sound")
+    print("\nAvailable Sound Models:")
+    for c in CANDIDATES:
+        print(f"  [{c['id']}] {c['title']}")
+        print(f"      {c['desc']}")
+
+def find_candidate(query):
+    query = query.strip().lower()
+    for c in CANDIDATES:
+        if c["id"] == query:
+            return c
+    for c in CANDIDATES:
+        if c["name"].lower() == query or c["file"].lower() == query:
+            return c
+    for c in CANDIDATES:
+        if query in c["name"].lower():
+            return c
+    return None
+
+def main():
+    if len(sys.argv) < 2:
+        print_help()
+        sys.exit(0)
+
+    cmd = sys.argv[1].lower()
+
+    if cmd in ("list", "ls"):
+        print("🛸 Handcrafted Physical Acoustic Overclock Models:")
+        for c in CANDIDATES:
+            full_p = os.path.join(CANDIDATES_DIR, c["file"])
+            exists = "✓" if os.path.exists(full_p) else "✗"
+            print(f"  [{c['id']}] {c['title']} [{exists}]")
+            print(f"      Description: {c['desc']}")
+            print(f"      File: {c['file']}\n")
+
+    elif cmd in ("current", "status"):
+        print(f"Playing currently active overclock sound: {ACTIVE_SOUND}")
+        play_sound(ACTIVE_SOUND)
+
+    elif cmd in ("test", "preview", "play"):
+        if len(sys.argv) < 3:
+            print("Please specify sound ID or name (1-4). Example: solaris-overclock-sound test 1")
+            sys.exit(1)
+        c = find_candidate(sys.argv[2])
+        if not c:
+            print(f"Unknown sound candidate: {sys.argv[2]}")
+            sys.exit(1)
+        target_path = os.path.join(CANDIDATES_DIR, c["file"])
+        print(f"🏎️ Auditioning [{c['id']}] {c['title']}...")
+        play_sound(target_path)
+
+    elif cmd in ("set", "apply", "select"):
+        if len(sys.argv) < 3:
+            print("Please specify sound ID or name (1-4). Example: solaris-overclock-sound set 1")
+            sys.exit(1)
+        c = find_candidate(sys.argv[2])
+        if not c:
+            print(f"Unknown sound candidate: {sys.argv[2]}")
+            sys.exit(1)
+        target_path = os.path.join(CANDIDATES_DIR, c["file"])
+        if not os.path.exists(target_path):
+            print(f"Error: Candidate file does not exist: {target_path}")
+            sys.exit(1)
+
+        # Copy to active sound path
+        os.makedirs(os.path.dirname(ACTIVE_SOUND), exist_ok=True)
+        shutil.copy2(target_path, ACTIVE_SOUND)
+
+        # Copy to repo sound path if exists
+        if os.path.exists(os.path.dirname(REPO_SOUND)):
+            shutil.copy2(target_path, REPO_SOUND)
+
+        print(f"✅ Active Overclock sound set to [{c['id']}] {c['title']}!")
+        print(f"Testing new sound now...")
+        play_sound(ACTIVE_SOUND)
+
+    else:
+        print_help()
+
+if __name__ == "__main__":
+    main()

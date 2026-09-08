@@ -21,9 +21,14 @@ typedef struct {
     event_type_t type;
 } mission_event_t;
 
+#define MAX_ACTIVITY_MONITORS 8
+
 typedef struct {
     GtkWidget *window;
     GtkWidget *drawing_area;
+    GtkWidget *windows[MAX_ACTIVITY_MONITORS];
+    GtkWidget *drawing_areas[MAX_ACTIVITY_MONITORS];
+    int view_count;
     mission_event_t events[MAX_EVENTS];
     int event_count;
     int scroll_offset;
@@ -34,6 +39,14 @@ typedef struct {
 } activity_app_t;
 
 static activity_app_t g_app;
+
+static void redraw_all_views(void) {
+    for (int i = 0; i < g_app.view_count; i++) {
+        if (g_app.drawing_areas[i]) {
+            gtk_widget_queue_draw(g_app.drawing_areas[i]);
+        }
+    }
+}
 
 static void format_file_size(off_t bytes, char *buf, size_t buf_size) {
     if (bytes >= 1024 * 1024 * 1024) {
@@ -376,7 +389,7 @@ static gboolean on_motion_notify(GtkWidget *widget, GdkEventMotion *event, gpoin
     }
 
     if (old_hov != g_app.hovered_idx) {
-        gtk_widget_queue_draw(widget);
+        redraw_all_views();
     }
     return FALSE;
 }
@@ -397,12 +410,12 @@ static gboolean on_scroll(GtkWidget *widget, GdkEventScroll *event, gpointer use
     if (event->direction == GDK_SCROLL_UP) {
         if (g_app.scroll_offset > 0) {
             g_app.scroll_offset--;
-            gtk_widget_queue_draw(widget);
+            redraw_all_views();
         }
     } else if (event->direction == GDK_SCROLL_DOWN) {
         if (g_app.scroll_offset + 4 < g_app.event_count) {
             g_app.scroll_offset++;
-            gtk_widget_queue_draw(widget);
+            redraw_all_views();
         }
     }
     return FALSE;
@@ -411,9 +424,7 @@ static gboolean on_scroll(GtkWidget *widget, GdkEventScroll *event, gpointer use
 static gboolean on_anim_tick(gpointer user_data) {
     (void)user_data;
     g_app.time_sec += 0.05;
-    if (g_app.drawing_area) {
-        gtk_widget_queue_draw(g_app.drawing_area);
-    }
+    redraw_all_views();
     return G_SOURCE_CONTINUE;
 }
 
@@ -421,9 +432,7 @@ static gboolean on_telem_tick(gpointer user_data) {
     (void)user_data;
     refresh_mission_events();
     solaris_trim_memory();
-    if (g_app.drawing_area) {
-        gtk_widget_queue_draw(g_app.drawing_area);
-    }
+    redraw_all_views();
     return G_SOURCE_CONTINUE;
 }
 
@@ -434,32 +443,49 @@ int main(int argc, char **argv) {
     memset(&g_app, 0, sizeof(g_app));
     g_app.hovered_idx = -1;
 
-    g_app.window = gtk_window_new(GTK_WINDOW_TOPLEVEL);
-    solaris_setup_layer_window(g_app.window, "solaris-bg-activity",
-                                460, 330,
-                                TRUE, FALSE, TRUE, FALSE,
-                                374, 0, 16, 0);
+    GdkDisplay *display = gdk_display_get_default();
+    int n_monitors = display ? gdk_display_get_n_monitors(display) : 1;
+    g_app.view_count = 0;
 
-    g_app.drawing_area = gtk_drawing_area_new();
-    gtk_container_add(GTK_CONTAINER(g_app.window), g_app.drawing_area);
+    for (int i = 0; i < n_monitors && i < MAX_ACTIVITY_MONITORS; i++) {
+        GdkMonitor *mon = display ? gdk_display_get_monitor(display, i) : NULL;
+        GtkWidget *win = gtk_window_new(GTK_WINDOW_TOPLEVEL);
+        solaris_setup_layer_window_for_monitor(win, mon, "solaris-bg-activity",
+                                                460, 330,
+                                                TRUE, FALSE, TRUE, FALSE,
+                                                374, 0, 16, 0);
 
-    gtk_widget_add_events(g_app.drawing_area,
-                          GDK_POINTER_MOTION_MASK |
-                          GDK_BUTTON_PRESS_MASK |
-                          GDK_SCROLL_MASK |
-                          GDK_LEAVE_NOTIFY_MASK);
+        GtkWidget *da = gtk_drawing_area_new();
+        gtk_container_add(GTK_CONTAINER(win), da);
 
-    g_signal_connect(g_app.drawing_area, "draw", G_CALLBACK(on_draw), NULL);
-    g_signal_connect(g_app.drawing_area, "motion-notify-event", G_CALLBACK(on_motion_notify), NULL);
-    g_signal_connect(g_app.drawing_area, "button-press-event", G_CALLBACK(on_button_press), NULL);
-    g_signal_connect(g_app.drawing_area, "scroll-event", G_CALLBACK(on_scroll), NULL);
+        gtk_widget_add_events(da,
+                              GDK_POINTER_MOTION_MASK |
+                              GDK_BUTTON_PRESS_MASK |
+                              GDK_SCROLL_MASK |
+                              GDK_LEAVE_NOTIFY_MASK);
+
+        g_signal_connect(da, "draw", G_CALLBACK(on_draw), NULL);
+        g_signal_connect(da, "motion-notify-event", G_CALLBACK(on_motion_notify), NULL);
+        g_signal_connect(da, "button-press-event", G_CALLBACK(on_button_press), NULL);
+        g_signal_connect(da, "scroll-event", G_CALLBACK(on_scroll), NULL);
+
+        gtk_widget_show_all(win);
+
+        g_app.windows[g_app.view_count] = win;
+        g_app.drawing_areas[g_app.view_count] = da;
+        g_app.view_count++;
+    }
+
+    if (g_app.view_count > 0) {
+        g_app.window = g_app.windows[0];
+        g_app.drawing_area = g_app.drawing_areas[0];
+    }
 
     refresh_mission_events();
 
     g_app.anim_timer_id = g_timeout_add(50, on_anim_tick, NULL);
     g_app.telem_timer_id = g_timeout_add(4000, on_telem_tick, NULL);
 
-    gtk_widget_show_all(g_app.window);
     gtk_main();
     return 0;
 }

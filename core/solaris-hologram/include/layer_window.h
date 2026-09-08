@@ -7,9 +7,20 @@
 #include "particle_system.h"
 #include "command_center.h"
 
+#define MAX_HOLOGRAM_MONITORS 8
+
+typedef struct {
+    GtkWidget *window;
+    GtkWidget *drawing_area;
+    GdkMonitor *monitor;
+} hologram_monitor_view_t;
+
 struct hologram_app_s {
     GtkWidget *window;
     GtkWidget *drawing_area;
+
+    hologram_monitor_view_t views[MAX_HOLOGRAM_MONITORS];
+    int view_count;
 
     orbital_system_t sys;
     niri_ipc_t ipc;

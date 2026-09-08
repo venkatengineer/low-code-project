@@ -2,9 +2,13 @@
 #include "telemetry.h"
 #include "cairo_utils.h"
 
+#define MAX_WIFI_MONITORS 8
 typedef struct {
     GtkWidget *window;
     GtkWidget *drawing_area;
+    GtkWidget *windows[MAX_WIFI_MONITORS];
+    GtkWidget *drawing_areas[MAX_WIFI_MONITORS];
+    int view_count;
     net_telemetry_t net;
     wifi_scan_telemetry_t wifi_scan;
     double time_sec;
@@ -23,8 +27,10 @@ static void trigger_wifi_rescan(void) {
     g_app.rescan_anim_timer = 2.0;
     g_spawn_command_line_async("nmcli dev wifi rescan", NULL);
     update_wifi_scan_telemetry(&g_app.wifi_scan);
-    if (g_app.drawing_area) {
-        gtk_widget_queue_draw(g_app.drawing_area);
+    for (int i = 0; i < g_app.view_count; i++) {
+        if (g_app.drawing_areas[i]) {
+            gtk_widget_queue_draw(g_app.drawing_areas[i]);
+        }
     }
 }
 
@@ -362,8 +368,10 @@ static gboolean on_animation_tick(gpointer user_data) {
             g_app.is_rescanning = FALSE;
         }
     }
-    if (g_app.drawing_area) {
-        gtk_widget_queue_draw(g_app.drawing_area);
+    for (int i = 0; i < g_app.view_count; i++) {
+        if (g_app.drawing_areas[i]) {
+            gtk_widget_queue_draw(g_app.drawing_areas[i]);
+        }
     }
     return G_SOURCE_CONTINUE;
 }
@@ -387,26 +395,42 @@ int main(int argc, char **argv) {
     update_net_telemetry(&g_app.net);
     update_wifi_scan_telemetry(&g_app.wifi_scan);
 
-    g_app.window = gtk_window_new(GTK_WINDOW_TOPLEVEL);
-    solaris_setup_layer_window(g_app.window, "solaris-bg-wifi",
-                               490, 280,
-                               TRUE, FALSE, TRUE, FALSE, // Top-Left anchor
-                               44, 0, 16, 0);
+    GdkDisplay *display = gdk_display_get_default();
+    int n_monitors = display ? gdk_display_get_n_monitors(display) : 1;
+    g_app.view_count = 0;
 
-    g_app.drawing_area = gtk_drawing_area_new();
-    gtk_widget_add_events(g_app.drawing_area, GDK_BUTTON_PRESS_MASK | GDK_POINTER_MOTION_MASK | GDK_SCROLL_MASK | GDK_SMOOTH_SCROLL_MASK);
-    g_signal_connect(g_app.drawing_area, "draw", G_CALLBACK(on_draw), NULL);
-    g_signal_connect(g_app.drawing_area, "button-press-event", G_CALLBACK(on_button_press), NULL);
-    g_signal_connect(g_app.drawing_area, "motion-notify-event", G_CALLBACK(on_motion_notify), NULL);
-    g_signal_connect(g_app.drawing_area, "scroll-event", G_CALLBACK(on_scroll_event), NULL);
-    gtk_container_add(GTK_CONTAINER(g_app.window), g_app.drawing_area);
+    for (int i = 0; i < n_monitors && i < MAX_WIFI_MONITORS; i++) {
+        GdkMonitor *mon = display ? gdk_display_get_monitor(display, i) : NULL;
+        GtkWidget *win = gtk_window_new(GTK_WINDOW_TOPLEVEL);
+        solaris_setup_layer_window_for_monitor(win, mon, "solaris-bg-wifi",
+                                               490, 280,
+                                               TRUE, FALSE, TRUE, FALSE, // Top-Left anchor
+                                               44, 0, 16, 0);
+
+        GtkWidget *da = gtk_drawing_area_new();
+        gtk_widget_add_events(da, GDK_BUTTON_PRESS_MASK | GDK_POINTER_MOTION_MASK | GDK_SCROLL_MASK | GDK_SMOOTH_SCROLL_MASK);
+        g_signal_connect(da, "draw", G_CALLBACK(on_draw), NULL);
+        g_signal_connect(da, "button-press-event", G_CALLBACK(on_button_press), NULL);
+        g_signal_connect(da, "motion-notify-event", G_CALLBACK(on_motion_notify), NULL);
+        g_signal_connect(da, "scroll-event", G_CALLBACK(on_scroll_event), NULL);
+        gtk_container_add(GTK_CONTAINER(win), da);
+        gtk_widget_show_all(win);
+
+        g_app.windows[g_app.view_count] = win;
+        g_app.drawing_areas[g_app.view_count] = da;
+        g_app.view_count++;
+    }
+
+    if (g_app.view_count > 0) {
+        g_app.window = g_app.windows[0];
+        g_app.drawing_area = g_app.drawing_areas[0];
+    }
 
     // 25 FPS globe rotation
     g_app.anim_timer_id = g_timeout_add(40, on_animation_tick, NULL);
     // 1.5s telemetry update
     g_app.telem_timer_id = g_timeout_add(1500, on_telemetry_tick, NULL);
 
-    gtk_widget_show_all(g_app.window);
     gtk_main();
     return 0;
 }

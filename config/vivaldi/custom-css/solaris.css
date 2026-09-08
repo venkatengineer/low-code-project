@@ -1,0 +1,881 @@
+/* ==============================================================================
+ * 🛸 SOLARIS OS // SPACECRAFT COMMAND CONSOLE & AVIONICS COCKPIT INTERFACE
+ * Complete Aerospace Avionics Cockpit Architecture for Vivaldi Browser
+ * Designed to integrate seamlessly with Solaris OS Wayland Desktop
+ * Visual Direction: Spacecraft Cockpit Bulkhead & Flight Deck Avionics
+ * ============================================================================== */
+
+:root {
+  /* Bulkhead Chassis & Heavy Armor Plating */
+  --cockpit-chassis-deep: #04070a;
+  --cockpit-bulkhead-plate: #080c13;
+  --cockpit-bulkhead-elevated: #0e1420;
+  --cockpit-bulkhead-bezel: #141c2c;
+  --cockpit-bay-recess: #020407;
+  --cockpit-display-glass: rgba(6, 11, 18, 0.94);
+  
+  /* Precision Mechanical Structural Seams */
+  --cockpit-seam: rgba(0, 240, 255, 0.14);
+  --cockpit-seam-bright: rgba(0, 240, 255, 0.35);
+  --cockpit-seam-dim: rgba(0, 240, 255, 0.08);
+  --cockpit-bevel-light: inset 0 1px 0 rgba(255, 255, 255, 0.1);
+  --cockpit-bevel-dark: inset 0 -1px 0 rgba(0, 0, 0, 0.85);
+  --cockpit-panel-depth: 0 4px 16px rgba(0, 0, 0, 0.8);
+
+  /* Functional Aerospace Illuminated Indicators (Restrained, Non-Neon) */
+  --cockpit-cyan: #00f0ff;
+  --cockpit-cyan-dim: rgba(0, 240, 255, 0.15);
+  --cockpit-cyan-glow: rgba(0, 240, 255, 0.4);
+  --cockpit-teal: #00b4d8;
+  
+  /* Avionics Telemetry Status Codes */
+  --cockpit-emerald: #00ff88;         /* Nominal / Secure TLS / Active Audio / Sync OK */
+  --cockpit-emerald-dim: rgba(0, 255, 136, 0.16);
+  --cockpit-emerald-glow: rgba(0, 255, 136, 0.45);
+  --cockpit-amber: #ffb703;           /* Caution / Transfer Buffer / Insecure TLS */
+  --cockpit-amber-dim: rgba(255, 183, 3, 0.18);
+  --cockpit-amber-glow: rgba(255, 183, 3, 0.45);
+  --cockpit-crimson: #ff2a5f;         /* Critical / Ejection Switch / Close Channel */
+  --cockpit-crimson-glow: rgba(255, 42, 95, 0.5);
+
+  /* High-Readability Monospace Instrumentation Typography */
+  --cockpit-font-mono: "JetBrainsMono Nerd Font", "JetBrains Mono", "Orbitron", monospace;
+  --cockpit-text-bright: #f8fafc;
+  --cockpit-text-primary: #e2e8f0;
+  --cockpit-text-secondary: #94a3b8;
+  --cockpit-text-muted: #52657a;
+  --cockpit-text-dim: #334155;
+  
+  /* Vivaldi Theme Variable Overrides */
+  --colorBg: #080c13 !important;
+  --colorBgDark: #04070a !important;
+  --colorBgDarker: #020407 !important;
+  --colorBgLight: #0e1420 !important;
+  --colorBgLighter: #151e2e !important;
+  --colorFg: #e2e8f0 !important;
+  --colorFgFaded: #94a3b8 !important;
+  --colorFgFadedMore: #52657a !important;
+  --colorAccentBg: #00f0ff !important;
+  --colorAccentBgDark: #0096c7 !important;
+  --colorHighlightBg: #00ff88 !important;
+  --colorBorder: rgba(0, 240, 255, 0.16) !important;
+}
+
+/* ==============================================================================
+ * 1. GLOBAL BULKHEAD BACKING & INSTRUMENTATION TYPOGRAPHY
+ * ============================================================================== */
+
+#browser,
+#browser.linux,
+.toolbar,
+.tab,
+.addressfield,
+.panel-group,
+.startpage,
+.menu,
+.quick-command-container,
+.tooltip {
+  font-family: var(--cockpit-font-mono) !important;
+  letter-spacing: 0.25px !important;
+}
+
+#browser {
+  background-color: var(--cockpit-chassis-deep) !important;
+  color: var(--cockpit-text-primary) !important;
+}
+
+#browser.linux {
+  background-color: var(--cockpit-chassis-deep) !important;
+}
+
+/* Precision avionics UI transitions */
+button, input, select, textarea, .tab {
+  transition: all 0.15s cubic-bezier(0.16, 1, 0.3, 1) !important;
+}
+
+/* ==============================================================================
+ * 2. TOP FLIGHT DECK CANOPY: TAB BAR & MISSION CHANNELS
+ * ============================================================================== */
+
+#tabs-tabbar-container {
+  background: linear-gradient(180deg, #030609 0%, #070b11 100%) !important;
+  border-bottom: 1px solid var(--cockpit-seam-bright) !important;
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.05), 0 2px 10px rgba(0, 0, 0, 0.7) !important;
+  padding-top: 3px !important;
+  position: relative !important;
+  z-index: 10 !important;
+}
+
+/* Mission Workspace Selector Button */
+.tabbar-workspace-button button {
+  font-family: var(--cockpit-font-mono) !important;
+  font-size: 11px !important;
+  font-weight: 700 !important;
+  letter-spacing: 0.8px !important;
+  color: var(--cockpit-cyan) !important;
+  background: linear-gradient(180deg, #121926 0%, #090e16 100%) !important;
+  border: 1px solid var(--cockpit-seam-bright) !important;
+  border-radius: 3px !important;
+  box-shadow: var(--cockpit-bevel-light), var(--cockpit-bevel-dark) !important;
+  padding: 3px 8px !important;
+  margin: 0 4px !important;
+}
+
+.tabbar-workspace-button button:hover {
+  background: linear-gradient(180deg, #182335 0%, #0d1522 100%) !important;
+  border-color: var(--cockpit-cyan) !important;
+  box-shadow: 0 0 10px var(--cockpit-cyan-dim), var(--cockpit-bevel-light) !important;
+}
+
+/* Tabs: Machined Avionics Channel Modules */
+.tab-position .tab {
+  background: linear-gradient(180deg, #0b1018 0%, #06090e 100%) !important;
+  border: 1px solid var(--cockpit-seam) !important;
+  border-right: 1px solid rgba(0, 240, 255, 0.12) !important;
+  border-bottom: 1px solid transparent !important;
+  border-radius: 3px 3px 0 0 !important;
+  margin: 0 2px !important;
+  color: var(--cockpit-text-secondary) !important;
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.04), 0 2px 4px rgba(0, 0, 0, 0.5) !important;
+  position: relative !important;
+}
+
+/* Subtle top status groove on tabs */
+.tab-position .tab::before {
+  content: "" !important;
+  position: absolute !important;
+  top: 0 !important;
+  left: 0 !important;
+  right: 0 !important;
+  height: 2px !important;
+  background: rgba(0, 240, 255, 0.1) !important;
+  transition: all 0.2s ease !important;
+}
+
+/* Hover Tab: Subtle Instrument Backlighting */
+.tab-position .tab:hover {
+  background: linear-gradient(180deg, #121a26 0%, #090e15 100%) !important;
+  border-color: var(--cockpit-seam-bright) !important;
+  color: var(--cockpit-text-bright) !important;
+  box-shadow: 0 0 10px var(--cockpit-cyan-dim), inset 0 1px 0 rgba(255, 255, 255, 0.1) !important;
+}
+
+.tab-position .tab:hover::before {
+  background: var(--cockpit-cyan) !important;
+  box-shadow: 0 0 6px var(--cockpit-cyan) !important;
+}
+
+/* Active Tab: Primary Mission Channel (Illuminated Flight Status) */
+.tab-position .tab.active,
+#browser #tabs-subcontainer .tab.active {
+  background: linear-gradient(180deg, rgba(0, 240, 255, 0.2) 0%, rgba(8, 14, 23, 0.98) 100%) !important;
+  border-top: 2px solid var(--cockpit-cyan) !important;
+  border-left: 1px solid var(--cockpit-seam-bright) !important;
+  border-right: 1px solid var(--cockpit-seam-bright) !important;
+  border-bottom: 1px solid transparent !important;
+  color: var(--cockpit-cyan) !important;
+  box-shadow: 0 -2px 14px var(--cockpit-cyan-glow), inset 0 1px 0 rgba(0, 240, 255, 0.35) !important;
+  font-weight: 700 !important;
+}
+
+.tab-position .tab.active::before {
+  background: var(--cockpit-cyan) !important;
+  box-shadow: 0 0 10px var(--cockpit-cyan) !important;
+}
+
+/* Active Tab Favicon / Indicator */
+.tab.active .favicon {
+  filter: drop-shadow(0 0 4px var(--cockpit-cyan-glow)) !important;
+}
+
+/* Tab Title Typography */
+.tab .title {
+  font-size: 11px !important;
+  font-weight: 600 !important;
+  letter-spacing: 0.3px !important;
+}
+
+/* Audio Playing: Bioluminescent Emerald Frequency Pulse */
+.tab.audio-playing .tab-audio,
+.tab.has-audio .tab-audio {
+  color: var(--cockpit-emerald) !important;
+  filter: drop-shadow(0 0 6px var(--cockpit-emerald)) !important;
+}
+
+/* Tab Close Button: Recessed Channel Disconnect / Eject Switch */
+.tab .close {
+  border-radius: 2px !important;
+  padding: 2px !important;
+  margin-right: 2px !important;
+  color: var(--cockpit-text-muted) !important;
+  transition: all 0.15s ease !important;
+}
+
+.tab .close:hover {
+  background: rgba(255, 42, 95, 0.25) !important;
+  color: var(--cockpit-crimson) !important;
+  box-shadow: 0 0 8px var(--cockpit-crimson-glow) !important;
+}
+
+/* New Channel / Add Tab Key: Machined Avionics Trigger Button */
+.newtab > button {
+  background: linear-gradient(180deg, #111724 0%, #080d14 100%) !important;
+  border: 1px solid var(--cockpit-seam) !important;
+  border-radius: 3px !important;
+  color: var(--cockpit-text-secondary) !important;
+  box-shadow: var(--cockpit-bevel-light), var(--cockpit-bevel-dark) !important;
+  margin-left: 3px !important;
+}
+
+.newtab > button:hover {
+  background: linear-gradient(180deg, #182233 0%, #0d1520 100%) !important;
+  border-color: var(--cockpit-cyan) !important;
+  color: var(--cockpit-cyan) !important;
+  box-shadow: 0 0 10px var(--cockpit-cyan-dim), var(--cockpit-bevel-light) !important;
+}
+
+.newtab > button:active {
+  transform: translateY(1px) !important;
+  box-shadow: inset 0 2px 4px rgba(0, 0, 0, 0.9) !important;
+}
+
+/* Window Control Switchgear (Minimize, Maximize, Close) */
+.window-buttongroup button {
+  color: var(--cockpit-text-secondary) !important;
+  transition: all 0.15s ease !important;
+}
+
+.window-buttongroup button:hover {
+  color: var(--cockpit-cyan) !important;
+  background: rgba(0, 240, 255, 0.12) !important;
+}
+
+.window-buttongroup button.close:hover {
+  background: rgba(255, 42, 95, 0.3) !important;
+  color: var(--cockpit-crimson) !important;
+  box-shadow: 0 0 10px var(--cockpit-crimson-glow) !important;
+}
+
+/* ==============================================================================
+ * 3. FLIGHT CONTROL BAR: NAVIGATION SWITCHGEAR CONSOLE
+ * ============================================================================== */
+
+.toolbar-mainbar {
+  background: linear-gradient(180deg, #090d14 0%, #06090e 100%) !important;
+  border-bottom: 1px solid var(--cockpit-seam-bright) !important;
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.05), 0 4px 14px rgba(0, 0, 0, 0.75) !important;
+  padding: 4px 8px !important;
+  gap: 4px !important;
+  position: relative !important;
+  z-index: 9 !important;
+}
+
+/* Physical Avionics Switchgear (Back, Forward, Reload, Home) */
+.toolbar-mainbar .button-toolbar > button,
+.toolbar .button-toolbar > button {
+  background: linear-gradient(180deg, #151f2d 0%, #0c121c 100%) !important;
+  border: 1px solid rgba(0, 240, 255, 0.22) !important;
+  border-radius: 3px !important;
+  color: var(--cockpit-text-secondary) !important;
+  box-shadow: var(--cockpit-bevel-light), var(--cockpit-bevel-dark), 0 2px 4px rgba(0, 0, 0, 0.5) !important;
+  padding: 4px 6px !important;
+  margin: 0 1px !important;
+  height: 28px !important;
+  min-width: 28px !important;
+}
+
+.toolbar-mainbar .button-toolbar > button svg,
+.toolbar .button-toolbar > button svg {
+  fill: var(--cockpit-text-secondary) !important;
+  stroke: var(--cockpit-text-secondary) !important;
+  transition: all 0.15s ease !important;
+}
+
+/* Rocker Switch Hover State */
+.toolbar-mainbar .button-toolbar > button:hover,
+.toolbar .button-toolbar > button:hover {
+  background: linear-gradient(180deg, #1b273a 0%, #101826 100%) !important;
+  border-color: var(--cockpit-cyan) !important;
+  color: var(--cockpit-cyan) !important;
+  box-shadow: 0 0 10px var(--cockpit-cyan-dim), var(--cockpit-bevel-light), 0 2px 5px rgba(0, 0, 0, 0.6) !important;
+}
+
+.toolbar-mainbar .button-toolbar > button:hover svg,
+.toolbar .button-toolbar > button:hover svg {
+  fill: var(--cockpit-cyan) !important;
+  stroke: var(--cockpit-cyan) !important;
+  filter: drop-shadow(0 0 4px var(--cockpit-cyan-glow)) !important;
+}
+
+/* Tactile Pushbutton Actuation (Pressed State) */
+.toolbar-mainbar .button-toolbar > button:active,
+.toolbar .button-toolbar > button:active {
+  background: linear-gradient(180deg, #090e15 0%, #111722 100%) !important;
+  transform: translateY(1px) !important;
+  box-shadow: inset 0 2px 6px rgba(0, 0, 0, 0.95), 0 1px 2px var(--cockpit-cyan-dim) !important;
+}
+
+/* Disabled Switchgear */
+.toolbar-mainbar .button-toolbar > button:disabled,
+.toolbar .button-toolbar > button:disabled {
+  opacity: 0.3 !important;
+  background: #090d14 !important;
+  border-color: rgba(255, 255, 255, 0.04) !important;
+  box-shadow: none !important;
+  color: var(--cockpit-text-dim) !important;
+  cursor: not-allowed !important;
+}
+
+.toolbar-mainbar .button-toolbar > button:disabled svg {
+  fill: var(--cockpit-text-dim) !important;
+  stroke: var(--cockpit-text-dim) !important;
+}
+
+/* ==============================================================================
+ * 4. NAVIGATION / COMMAND INPUT MODULE: CENTRAL HUD ADDRESS BAR
+ * ============================================================================== */
+
+.addressfield,
+#app .address-bottom-off .toolbar-addressbar:not(.toolbar-noflex) .addressfield {
+  background: 
+    linear-gradient(to right, var(--cockpit-cyan) 3px, transparent 3px) 0 0,
+    linear-gradient(to bottom, var(--cockpit-cyan) 3px, transparent 3px) 0 0,
+    linear-gradient(to left, var(--cockpit-cyan) 3px, transparent 3px) 100% 0,
+    linear-gradient(to bottom, var(--cockpit-cyan) 3px, transparent 3px) 100% 0,
+    linear-gradient(to right, var(--cockpit-cyan) 3px, transparent 3px) 0 100%,
+    linear-gradient(to top, var(--cockpit-cyan) 3px, transparent 3px) 0 100%,
+    linear-gradient(to left, var(--cockpit-cyan) 3px, transparent 3px) 100% 100%,
+    linear-gradient(to top, var(--cockpit-cyan) 3px, transparent 3px) 100% 100%,
+    linear-gradient(180deg, #03060a 0%, #060a10 100%) !important;
+  background-repeat: no-repeat !important;
+  background-size: 5px 5px, 5px 5px, 5px 5px, 5px 5px, 5px 5px, 5px 5px, 5px 5px, 5px 5px, 100% 100% !important;
+  border: 1px solid var(--cockpit-seam-bright) !important;
+  border-radius: 3px !important;
+  box-shadow: inset 0 2px 8px rgba(0, 0, 0, 0.95), inset 0 0 1px rgba(0, 240, 255, 0.15) !important;
+  color: var(--cockpit-text-bright) !important;
+  height: 28px !important;
+  padding: 0 8px !important;
+  position: relative !important;
+}
+
+/* Address Field Focus: Flight Computer Target Lock */
+.addressfield:focus-within,
+#app .address-bottom-off .toolbar-addressbar:not(.toolbar-noflex) .addressfield:focus-within {
+  border-color: var(--cockpit-cyan) !important;
+  box-shadow: 0 0 12px var(--cockpit-cyan-dim), inset 0 2px 8px rgba(0, 0, 0, 0.95) !important;
+}
+
+/* Monospace Command Input Typography */
+.addressfield input {
+  font-family: var(--cockpit-font-mono) !important;
+  font-size: 11.5px !important;
+  font-weight: 500 !important;
+  color: var(--cockpit-text-bright) !important;
+  letter-spacing: 0.35px !important;
+}
+
+.addressfield input::selection {
+  background: rgba(0, 240, 255, 0.3) !important;
+  color: #ffffff !important;
+}
+
+/* URL Syntax Highlighting: Navigation Vector Clarity */
+.UrlFragment--Host {
+  color: var(--cockpit-cyan) !important;
+  font-weight: 600 !important;
+  text-shadow: 0 0 6px var(--cockpit-cyan-dim) !important;
+}
+
+.UrlFragment--Subdomain {
+  color: var(--cockpit-text-primary) !important;
+}
+
+.UrlFragment--Path {
+  color: var(--cockpit-text-secondary) !important;
+}
+
+/* Security / TLS Status: Aerospace Telemetry Beacon */
+.addressfield .siteinfo-symbol {
+  color: var(--cockpit-text-secondary) !important;
+  margin-right: 5px !important;
+}
+
+.addressfield .siteinfo-symbol.secure {
+  color: var(--cockpit-emerald) !important;
+  filter: drop-shadow(0 0 5px var(--cockpit-emerald-glow)) !important;
+}
+
+.addressfield .siteinfo-symbol.warning,
+.addressfield .siteinfo-symbol.not-secure {
+  color: var(--cockpit-amber) !important;
+  filter: drop-shadow(0 0 6px var(--cockpit-amber-glow)) !important;
+}
+
+/* Quantum Data Transfer Beam: Page Load Progress Conduit */
+.addressfield .pageload .pageload-indicator,
+.webpageview > .pageload .pageload-indicator {
+  background: linear-gradient(90deg, var(--cockpit-cyan) 0%, var(--cockpit-emerald) 100%) !important;
+  box-shadow: 0 0 10px var(--cockpit-cyan), 0 0 4px var(--cockpit-emerald) !important;
+  height: 2px !important;
+}
+
+/* Micro-switches inside Address Bar (Bookmark, Reader, QR, etc.) */
+.toolbar-insideinput .button-toolbar > button {
+  background: transparent !important;
+  border: none !important;
+  box-shadow: none !important;
+  color: var(--cockpit-text-muted) !important;
+  height: 24px !important;
+  min-width: 24px !important;
+  padding: 2px 4px !important;
+}
+
+.toolbar-insideinput .button-toolbar > button:hover {
+  color: var(--cockpit-cyan) !important;
+  background: rgba(0, 240, 255, 0.1) !important;
+  box-shadow: 0 0 8px var(--cockpit-cyan-dim) !important;
+  border-radius: 2px !important;
+}
+
+/* Extensions Bar Button Insets */
+.toolbar-mainbar .toolbar-extensions .button-toolbar > button {
+  background: linear-gradient(180deg, #101622 0%, #0a0e16 100%) !important;
+  border: 1px solid var(--cockpit-seam) !important;
+}
+
+/* ==============================================================================
+ * 5. MAIN FORWARD VIEWPORT: BROWSER CONTENT FRAMING
+ * ============================================================================== */
+
+/* The webview is the cockpit's forward window into cyberspace.
+ * Webpages render normally with 100% fidelity, readable and unobstructed.
+ * The aerospace framing sits precisely on the perimeter. */
+
+#webview-container {
+  background-color: var(--cockpit-bay-recess) !important;
+  border: 1px solid var(--cockpit-seam) !important;
+  box-shadow: inset 0 2px 10px rgba(0, 0, 0, 0.85) !important;
+  position: relative !important;
+}
+
+/* Outer bulkhead seam framing the webview */
+.webpageview {
+  border: 1px solid rgba(0, 240, 255, 0.12) !important;
+  box-shadow: inset 0 0 8px rgba(0, 0, 0, 0.9) !important;
+}
+
+/* ==============================================================================
+ * 6. SIDE CONTROL MODULES: AVIONICS SUBSYSTEM PANEL
+ * ============================================================================== */
+
+#panels-container {
+  background-color: var(--cockpit-chassis-deep) !important;
+  border-right: 1px solid var(--cockpit-seam-bright) !important;
+  box-shadow: 4px 0 16px rgba(0, 0, 0, 0.75) !important;
+  position: relative !important;
+  z-index: 8 !important;
+}
+
+/* Vertical Avionics Switchgear Rack */
+#switch {
+  background: linear-gradient(90deg, #04070b 0%, #070b12 100%) !important;
+  border-right: 1px solid var(--cockpit-seam) !important;
+  box-shadow: inset -1px 0 0 rgba(255, 255, 255, 0.03) !important;
+}
+
+/* Subsystem Selector Keys */
+#switch button,
+#switch > .toolbar.toolbar-vertical .button-toolbar > button {
+  color: var(--cockpit-text-secondary) !important;
+  border-radius: 0 !important;
+  border-left: 2px solid transparent !important;
+  border-right: none !important;
+  border-top: none !important;
+  border-bottom: 1px solid rgba(0, 240, 255, 0.05) !important;
+  background: transparent !important;
+  height: 36px !important;
+  min-width: 36px !important;
+  padding: 6px !important;
+  transition: all 0.15s ease !important;
+}
+
+#switch button:hover,
+#switch > .toolbar.toolbar-vertical .button-toolbar > button:hover {
+  color: var(--cockpit-cyan) !important;
+  background: linear-gradient(90deg, rgba(0, 240, 255, 0.1) 0%, transparent 100%) !important;
+  border-left: 2px solid var(--cockpit-cyan) !important;
+  box-shadow: inset 3px 0 8px var(--cockpit-cyan-dim) !important;
+}
+
+/* Engaged Subsystem (Active Panel State) */
+#switch button.active,
+#switch > .toolbar.toolbar-vertical .button-toolbar.active > button {
+  color: var(--cockpit-cyan) !important;
+  background: linear-gradient(90deg, rgba(0, 240, 255, 0.18) 0%, rgba(8, 14, 22, 0.6) 100%) !important;
+  border-left: 3px solid var(--cockpit-cyan) !important;
+  box-shadow: inset 4px 0 12px var(--cockpit-cyan-dim) !important;
+  filter: drop-shadow(0 0 6px var(--cockpit-cyan-dim)) !important;
+}
+
+/* Integrated Tactical Diagnostic Panel */
+.panel-group {
+  background: linear-gradient(180deg, #070a10 0%, #04070c 100%) !important;
+  color: var(--cockpit-text-primary) !important;
+  border-right: 1px solid var(--cockpit-seam-bright) !important;
+}
+
+/* Subsystem Panel Header */
+.panel-group header,
+.panel-header {
+  background: linear-gradient(180deg, #0c121b 0%, #070b10 100%) !important;
+  border-bottom: 1px solid var(--cockpit-seam) !important;
+  padding: 8px 12px !important;
+  color: var(--cockpit-cyan) !important;
+  font-family: var(--cockpit-font-mono) !important;
+  font-size: 11px !important;
+  font-weight: 700 !important;
+  letter-spacing: 1px !important;
+  text-transform: uppercase !important;
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.06) !important;
+}
+
+/* Panel Header Buttons (+, -, Checkmark, Close) */
+.panel-group header button,
+.panel-header button,
+.panel-group .toolbar button {
+  background: linear-gradient(180deg, #131c2a 0%, #0a0e16 100%) !important;
+  border: 1px solid var(--cockpit-seam) !important;
+  border-radius: 2px !important;
+  color: var(--cockpit-text-secondary) !important;
+  box-shadow: var(--cockpit-bevel-light), var(--cockpit-bevel-dark) !important;
+  padding: 2px 6px !important;
+  margin: 0 2px !important;
+}
+
+.panel-group header button:hover,
+.panel-header button:hover,
+.panel-group .toolbar button:hover {
+  background: linear-gradient(180deg, #192436 0%, #0e1520 100%) !important;
+  border-color: var(--cockpit-cyan) !important;
+  color: var(--cockpit-cyan) !important;
+  box-shadow: 0 0 8px var(--cockpit-cyan-dim) !important;
+}
+
+/* Panel Input Fields (Telemetry Filter Boxes) */
+.panel-group input[type="search"],
+.panel-group input[type="text"] {
+  background: #030609 !important;
+  border: 1px solid var(--cockpit-seam) !important;
+  border-radius: 2px !important;
+  color: var(--cockpit-text-bright) !important;
+  font-family: var(--cockpit-font-mono) !important;
+  font-size: 11px !important;
+  padding: 5px 8px !important;
+  box-shadow: inset 0 1px 4px rgba(0, 0, 0, 0.9) !important;
+}
+
+.panel-group input:focus {
+  border-color: var(--cockpit-cyan) !important;
+  box-shadow: 0 0 10px var(--cockpit-cyan-dim), inset 0 1px 4px rgba(0, 0, 0, 0.95) !important;
+}
+
+/* Panel Tree / List Telemetry Rows */
+.panel-group .tree-row,
+.panel-group .list-row {
+  color: var(--cockpit-text-primary) !important;
+  border-bottom: 1px solid rgba(0, 240, 255, 0.04) !important;
+  padding: 4px 8px !important;
+  transition: all 0.12s ease !important;
+}
+
+.panel-group .tree-row:hover,
+.panel-group .list-row:hover {
+  background: linear-gradient(90deg, rgba(0, 240, 255, 0.1) 0%, transparent 100%) !important;
+  color: var(--cockpit-cyan) !important;
+}
+
+.panel-group .tree-row.selected,
+.panel-group .list-row.selected {
+  background: linear-gradient(90deg, rgba(0, 240, 255, 0.2) 0%, rgba(0, 240, 255, 0.05) 100%) !important;
+  color: var(--cockpit-cyan) !important;
+  border-left: 2px solid var(--cockpit-cyan) !important;
+}
+
+/* Downloads Buffer Stream */
+.download-item .progress-bar,
+.download-item progress {
+  background: #04070a !important;
+  border: 1px solid var(--cockpit-seam) !important;
+  border-radius: 2px !important;
+  height: 4px !important;
+}
+
+.download-item .progress-bar::-webkit-progress-value,
+.download-item progress::-webkit-progress-value {
+  background: linear-gradient(90deg, var(--cockpit-cyan), var(--cockpit-emerald)) !important;
+  box-shadow: 0 0 6px var(--cockpit-cyan) !important;
+}
+
+/* ==============================================================================
+ * 7. BOTTOM STATUS STRIP: LOWER AVIONICS TELEMETRY DECK & OVERLAYS
+ * ============================================================================== */
+
+.toolbar-statusbar {
+  background: linear-gradient(180deg, #070a10 0%, #030508 100%) !important;
+  border-top: 1px solid var(--cockpit-seam-bright) !important;
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.05), 0 -2px 10px rgba(0, 0, 0, 0.8) !important;
+  color: var(--cockpit-text-secondary) !important;
+  font-family: var(--cockpit-font-mono) !important;
+  font-size: 11px !important;
+  height: 26px !important;
+  padding: 0 8px !important;
+  position: relative !important;
+  z-index: 9 !important;
+}
+
+/* Telemetry Readout Box (URL hover, loading status) */
+.toolbar-statusbar .StatusInfo,
+.toolbar-statusbar .statusbar-status {
+  color: #7dd3fc !important;
+  font-weight: 500 !important;
+  letter-spacing: 0.35px !important;
+}
+
+/* Status Bar Pushbuttons */
+.toolbar-statusbar .button-toolbar > button {
+  background: linear-gradient(180deg, #111722 0%, #0a0e16 100%) !important;
+  border: 1px solid var(--cockpit-seam) !important;
+  border-radius: 2px !important;
+  color: var(--cockpit-text-secondary) !important;
+  box-shadow: var(--cockpit-bevel-light), var(--cockpit-bevel-dark) !important;
+  height: 20px !important;
+  padding: 2px 6px !important;
+  margin: 0 2px !important;
+}
+
+.toolbar-statusbar .button-toolbar > button:hover {
+  background: linear-gradient(180deg, #172233 0%, #0e1520 100%) !important;
+  border-color: var(--cockpit-cyan) !important;
+  color: var(--cockpit-cyan) !important;
+  box-shadow: 0 0 8px var(--cockpit-cyan-dim) !important;
+}
+
+.toolbar-statusbar .button-toolbar > button:active {
+  transform: translateY(1px) !important;
+  box-shadow: inset 0 1px 3px rgba(0, 0, 0, 0.8) !important;
+}
+
+/* Zoom Magnification Controls */
+.toolbar-statusbar .page-zoom-controls {
+  gap: 3px !important;
+  align-items: center !important;
+}
+
+.toolbar-statusbar .page-zoom-controls input[type="range"] {
+  accent-color: var(--cockpit-cyan) !important;
+}
+
+/* Chronometer / Clock Display */
+.toolbar-statusbar .clock {
+  color: var(--cockpit-cyan) !important;
+  font-weight: 600 !important;
+  letter-spacing: 0.5px !important;
+  text-shadow: 0 0 6px var(--cockpit-cyan-dim) !important;
+}
+
+/* Floating Status Info Overlay (when status bar is set to overlay) */
+.StatusInfo-Content,
+#webview-container ~ .StatusInfo .StatusInfo-Content {
+  background: rgba(5, 9, 15, 0.94) !important;
+  border: 1px solid var(--cockpit-seam-bright) !important;
+  border-radius: 3px !important;
+  color: #7dd3fc !important;
+  font-family: var(--cockpit-font-mono) !important;
+  font-size: 11px !important;
+  box-shadow: 0 0 14px var(--cockpit-cyan-dim), 0 4px 16px rgba(0, 0, 0, 0.85) !important;
+  padding: 3px 8px !important;
+  letter-spacing: 0.35px !important;
+}
+
+/* ==============================================================================
+ * 8. START PAGE: TACTICAL NAVIGATION MATRIX
+ * ============================================================================== */
+
+.startpage {
+  background: radial-gradient(circle at 50% 15%, rgba(0, 240, 255, 0.05) 0%, rgba(3, 6, 10, 0.98) 70%), var(--cockpit-chassis-deep) !important;
+}
+
+/* Speed Dial Navigation Module Cards */
+.startpage .dials .dial {
+  background: linear-gradient(180deg, rgba(14, 20, 30, 0.9) 0%, rgba(7, 11, 17, 0.95) 100%) !important;
+  backdrop-filter: blur(14px) !important;
+  border: 1px solid var(--cockpit-seam-bright) !important;
+  border-radius: 4px !important;
+  box-shadow: 0 6px 25px rgba(0, 0, 0, 0.75), inset 0 1px 0 rgba(255, 255, 255, 0.08) !important;
+  transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1) !important;
+  position: relative !important;
+}
+
+.startpage .dials .dial:hover {
+  transform: translateY(-3px) scale(1.015) !important;
+  border-color: var(--cockpit-cyan) !important;
+  box-shadow: 0 10px 35px rgba(0, 240, 255, 0.25), 0 0 16px var(--cockpit-cyan-dim), inset 0 1px 0 rgba(255, 255, 255, 0.15) !important;
+}
+
+/* Destination Card Header Bar */
+.startpage .speeddial .dial .thumbnail-title {
+  background: linear-gradient(180deg, #090e16 0%, #05080e 100%) !important;
+  color: var(--cockpit-text-bright) !important;
+  border-top: 1px solid var(--cockpit-seam) !important;
+  font-family: var(--cockpit-font-mono) !important;
+  font-size: 11px !important;
+  font-weight: 600 !important;
+  letter-spacing: 0.5px !important;
+  padding: 6px 10px !important;
+}
+
+/* ==============================================================================
+ * 9. QUICK COMMANDS (F2) & HEADS-UP DISPLAY (HUD) DIALOGS
+ * ============================================================================== */
+
+/* Tactical Command Prompt HUD (F2) */
+.quick-command-container,
+.modal-overlay .modal {
+  background: linear-gradient(180deg, rgba(7, 13, 20, 0.97) 0%, rgba(3, 6, 10, 0.98) 100%) !important;
+  backdrop-filter: blur(20px) !important;
+  border: 1px solid var(--cockpit-cyan) !important;
+  border-radius: 4px !important;
+  box-shadow: 0 0 35px rgba(0, 240, 255, 0.3), 0 20px 60px rgba(0, 0, 0, 0.95), inset 0 1px 0 rgba(255, 255, 255, 0.15) !important;
+}
+
+.quick-command-container input {
+  font-family: var(--cockpit-font-mono) !important;
+  font-size: 13px !important;
+  color: #ffffff !important;
+  background: #020407 !important;
+  border: 1px solid var(--cockpit-seam-bright) !important;
+  border-radius: 3px !important;
+  box-shadow: inset 0 2px 6px rgba(0, 0, 0, 0.9) !important;
+  padding: 8px 12px !important;
+}
+
+.quick-command-container input:focus {
+  border-color: var(--cockpit-cyan) !important;
+  box-shadow: 0 0 14px var(--cockpit-cyan-dim), inset 0 2px 6px rgba(0, 0, 0, 0.9) !important;
+}
+
+/* Selected Command Row */
+.quick-command-container .quick-command-item.selected {
+  background: linear-gradient(90deg, rgba(0, 240, 255, 0.25) 0%, rgba(0, 240, 255, 0.05) 100%) !important;
+  color: var(--cockpit-cyan) !important;
+  border-left: 3px solid var(--cockpit-cyan) !important;
+}
+
+/* Context Menus & Aerospace Dropdowns */
+.menu,
+.context-menu,
+.toolbar-dropdown-container .dropdown {
+  background: linear-gradient(180deg, #0b111a 0%, #05080e 100%) !important;
+  border: 1px solid var(--cockpit-seam-bright) !important;
+  border-radius: 3px !important;
+  box-shadow: 0 8px 25px rgba(0, 0, 0, 0.85), inset 0 1px 0 rgba(255, 255, 255, 0.08) !important;
+  color: var(--cockpit-text-primary) !important;
+  padding: 4px !important;
+}
+
+.menu .menu-item:hover,
+.context-menu .item:hover {
+  background: linear-gradient(90deg, rgba(0, 240, 255, 0.16) 0%, transparent 100%) !important;
+  color: var(--cockpit-cyan) !important;
+  border-radius: 2px !important;
+}
+
+/* ==============================================================================
+ * 10. TAB PREVIEW & TELEMETRY TOOLTIP HUD
+ * ============================================================================== */
+
+#vivaldi-tooltip .tooltip,
+.tooltip {
+  background: transparent !important;
+  border: none !important;
+}
+
+#vivaldi-tooltip .tooltip .tooltip-item,
+.tooltip .tooltip-item {
+  background: linear-gradient(180deg, rgba(8, 14, 22, 0.97) 0%, rgba(4, 7, 12, 0.98) 100%) !important;
+  backdrop-filter: blur(16px) !important;
+  border: 1px solid var(--cockpit-seam-bright) !important;
+  border-radius: 4px !important;
+  box-shadow: 0 0 20px var(--cockpit-cyan-dim), 0 8px 25px rgba(0, 0, 0, 0.9) !important;
+  color: var(--cockpit-text-bright) !important;
+  padding: 6px !important;
+}
+
+/* Telemetry Tooltip Title & URL */
+.tooltip-item .tooltip-title {
+  font-family: var(--cockpit-font-mono) !important;
+  font-size: 11px !important;
+  font-weight: 700 !important;
+  color: var(--cockpit-cyan) !important;
+  letter-spacing: 0.4px !important;
+}
+
+.tooltip-item .tooltip-url {
+  font-family: var(--cockpit-font-mono) !important;
+  font-size: 10px !important;
+  color: var(--cockpit-text-secondary) !important;
+}
+
+/* ==============================================================================
+ * 11. BOOKMARKS BAR: TACTICAL QUICK-LAUNCH RAIL
+ * ============================================================================== */
+
+.bookmark-bar {
+  background: linear-gradient(180deg, #070a0f 0%, #04070a 100%) !important;
+  border-bottom: 1px solid var(--cockpit-seam) !important;
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.03) !important;
+  padding: 2px 6px !important;
+}
+
+.bookmark-bar button {
+  background: linear-gradient(180deg, #0e141e 0%, #080c12 100%) !important;
+  border: 1px solid var(--cockpit-seam-dim) !important;
+  border-radius: 2px !important;
+  color: var(--cockpit-text-secondary) !important;
+  font-family: var(--cockpit-font-mono) !important;
+  font-size: 11px !important;
+  padding: 2px 6px !important;
+  margin: 0 2px !important;
+}
+
+.bookmark-bar button:hover {
+  background: linear-gradient(180deg, #141e2d 0%, #0c121b 100%) !important;
+  border-color: var(--cockpit-cyan) !important;
+  color: var(--cockpit-cyan) !important;
+  box-shadow: 0 0 8px var(--cockpit-cyan-dim) !important;
+}
+
+/* ==============================================================================
+ * 12. LINEAR LEVEL GAUGE SCROLLBARS
+ * ============================================================================== */
+
+::-webkit-scrollbar {
+  width: 5px !important;
+  height: 5px !important;
+}
+
+::-webkit-scrollbar-track {
+  background: #030508 !important;
+}
+
+::-webkit-scrollbar-thumb {
+  background: rgba(0, 240, 255, 0.25) !important;
+  border-radius: 2px !important;
+  border: 1px solid rgba(0, 240, 255, 0.1) !important;
+  transition: all 0.15s ease !important;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: var(--cockpit-cyan) !important;
+  box-shadow: 0 0 8px var(--cockpit-cyan) !important;
+}

@@ -80,6 +80,10 @@ app.setAppUserModelId('aetheris');
 // Detect if launched automatically at login via --startup flag
 const isStartup = process.argv.includes('--startup');
 
+// Set persistent user data path before initializing locks
+const sessionUserData = path.join(app.getPath('appData'), 'aetheris_alien_music_overlay_data');
+app.setPath('userData', sessionUserData);
+
 // Enforce single instance lock so duplicate processes don't conflict on ports or shortcuts
 const gotTheLock = app.requestSingleInstanceLock();
 if (!gotTheLock) {
@@ -87,10 +91,6 @@ if (!gotTheLock) {
   app.quit();
   process.exit(0);
 }
-
-// Set persistent user data path
-const sessionUserData = path.join(app.getPath('appData'), 'aetheris_alien_music_overlay_data');
-app.setPath('userData', sessionUserData);
 
 console.log('====================================================');
 console.log('   AETHERIS OS ELECTRON DESKTOP OVERLAY LAUNCHER    ');
@@ -110,6 +110,7 @@ function toggleOverlayVisibility() {
   } else {
     console.log('[LOG] Showing & focusing overlay window (WAKE SEQUENCE)...');
     ensureSpotifyRunning();
+    if (mainWindow.isMinimized()) mainWindow.restore();
     mainWindow.show();
     mainWindow.focus();
     mainWindow.setAlwaysOnTop(true, 'screen-saver');
@@ -374,7 +375,9 @@ async function createWindow() {
 
 app.whenReady().then(() => {
   console.log('[LOG] Electron app is ready.');
-  startSpotifyDaemon();
+  if (!isStartup) {
+    startSpotifyDaemon();
+  }
   startOAuthServer();
   createWindow();
 

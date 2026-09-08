@@ -113,7 +113,7 @@ wake_system() {
     echo -e "[Solaris] \033[1;36m🛸 SPACECRAFT AWAKENING: Sequential Power-On Sequence & Main Grid Online...\033[0m"
     date +%s.%N > /tmp/solaris_awakening_time 2>/dev/null || true
     if [[ "$1" != "--silent" && "$1" != "--quiet" && "$1" != "-q" ]]; then
-        (pw-play ${HOME}/.local/share/solaris/sounds/spaceship_awakening.wav 2>/dev/null || paplay ${HOME}/.local/share/solaris/sounds/spaceship_awakening.wav 2>/dev/null || aplay ${HOME}/.local/share/solaris/sounds/spaceship_awakening.wav 2>/dev/null || true) &
+        solaris-play-sound awakening >/dev/null 2>&1 &
     fi
 }
 

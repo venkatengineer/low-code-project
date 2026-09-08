@@ -51,6 +51,8 @@ clean:
 
 install: all
 	mkdir -p $(HOME)/.local/bin
+	mkdir -p $(HOME)/.local/share/solaris/style
+	cp -f style/solaris.css $(HOME)/.local/share/solaris/style/solaris.css
 	cp -f $(TARGETS) $(HOME)/.local/bin/
 	cp -f src/cli/solaris-bg $(HOME)/.local/bin/solaris-bg
 	chmod +x $(HOME)/.local/bin/solaris-bg*

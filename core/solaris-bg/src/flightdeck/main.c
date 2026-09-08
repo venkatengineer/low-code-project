@@ -32,9 +32,14 @@ typedef struct {
     int fan_rpm;
 } flight_state_t;
 
+#define MAX_FLIGHT_MONITORS 8
+
 typedef struct {
     GtkWidget *window;
     GtkWidget *drawing_area;
+    GtkWidget *windows[MAX_FLIGHT_MONITORS];
+    GtkWidget *drawing_areas[MAX_FLIGHT_MONITORS];
+    int view_count;
     flight_state_t state;
     int hovered_btn;   // -1: none, 1..N: control IDs
     int active_drag;   // 0: none, 1: audio throttle drag, 2: brightness throttle drag
@@ -54,6 +59,14 @@ typedef struct {
 } flightdeck_app_t;
 
 static flightdeck_app_t g_app;
+
+static void redraw_all_views(void) {
+    for (int i = 0; i < g_app.view_count; i++) {
+        if (g_app.drawing_areas[i]) {
+            gtk_widget_queue_draw(g_app.drawing_areas[i]);
+        }
+    }
+}
 
 static void update_flight_state(flight_state_t *st) {
     // 1. Audio volume & mute
@@ -1640,9 +1653,7 @@ static gboolean on_anim_tick(gpointer user_data) {
         }
     }
 
-    if (g_app.drawing_area) {
-        gtk_widget_queue_draw(g_app.drawing_area);
-    }
+    redraw_all_views();
     return G_SOURCE_CONTINUE;
 }
 
@@ -1650,9 +1661,7 @@ static gboolean on_telem_tick(gpointer user_data) {
     (void)user_data;
     update_flight_state(&g_app.state);
     solaris_trim_memory();
-    if (g_app.drawing_area) {
-        gtk_widget_queue_draw(g_app.drawing_area);
-    }
+    redraw_all_views();
     return G_SOURCE_CONTINUE;
 }
 
@@ -1668,33 +1677,50 @@ int main(int argc, char **argv) {
     g_app.hovered_btn = -1;
     g_app.active_drag = 0;
 
-    g_app.window = gtk_window_new(GTK_WINDOW_TOPLEVEL);
-    // 460px width x 330px height at Top=374, Right=16
-    solaris_setup_layer_window(g_app.window, "solaris-bg-flightdeck",
-                                460, 330,
-                                TRUE, FALSE, FALSE, TRUE,
-                                374, 0, 0, 16);
+    GdkDisplay *display = gdk_display_get_default();
+    int n_monitors = display ? gdk_display_get_n_monitors(display) : 1;
+    g_app.view_count = 0;
 
-    g_app.drawing_area = gtk_drawing_area_new();
-    gtk_container_add(GTK_CONTAINER(g_app.window), g_app.drawing_area);
+    for (int i = 0; i < n_monitors && i < MAX_FLIGHT_MONITORS; i++) {
+        GdkMonitor *mon = display ? gdk_display_get_monitor(display, i) : NULL;
+        GtkWidget *win = gtk_window_new(GTK_WINDOW_TOPLEVEL);
+        // 460px width x 330px height at Top=374, Right=16
+        solaris_setup_layer_window_for_monitor(win, mon, "solaris-bg-flightdeck",
+                                                460, 330,
+                                                TRUE, FALSE, FALSE, TRUE,
+                                                374, 0, 0, 16);
 
-    gtk_widget_add_events(g_app.drawing_area,
-                          GDK_POINTER_MOTION_MASK |
-                          GDK_BUTTON_PRESS_MASK |
-                          GDK_BUTTON_RELEASE_MASK |
-                          GDK_LEAVE_NOTIFY_MASK);
+        GtkWidget *da = gtk_drawing_area_new();
+        gtk_container_add(GTK_CONTAINER(win), da);
 
-    g_signal_connect(g_app.drawing_area, "draw", G_CALLBACK(on_draw), NULL);
-    g_signal_connect(g_app.drawing_area, "motion-notify-event", G_CALLBACK(on_motion_notify), NULL);
-    g_signal_connect(g_app.drawing_area, "button-press-event", G_CALLBACK(on_button_press), NULL);
-    g_signal_connect(g_app.drawing_area, "button-release-event", G_CALLBACK(on_button_release), NULL);
+        gtk_widget_add_events(da,
+                              GDK_POINTER_MOTION_MASK |
+                              GDK_BUTTON_PRESS_MASK |
+                              GDK_BUTTON_RELEASE_MASK |
+                              GDK_LEAVE_NOTIFY_MASK);
+
+        g_signal_connect(da, "draw", G_CALLBACK(on_draw), NULL);
+        g_signal_connect(da, "motion-notify-event", G_CALLBACK(on_motion_notify), NULL);
+        g_signal_connect(da, "button-press-event", G_CALLBACK(on_button_press), NULL);
+        g_signal_connect(da, "button-release-event", G_CALLBACK(on_button_release), NULL);
+
+        gtk_widget_show_all(win);
+
+        g_app.windows[g_app.view_count] = win;
+        g_app.drawing_areas[g_app.view_count] = da;
+        g_app.view_count++;
+    }
+
+    if (g_app.view_count > 0) {
+        g_app.window = g_app.windows[0];
+        g_app.drawing_area = g_app.drawing_areas[0];
+    }
 
     update_flight_state(&g_app.state);
 
     g_app.anim_timer_id = g_timeout_add(40, on_anim_tick, NULL);
     g_app.telem_timer_id = g_timeout_add(1500, on_telem_tick, NULL);
 
-    gtk_widget_show_all(g_app.window);
     gtk_main();
     return 0;
 }

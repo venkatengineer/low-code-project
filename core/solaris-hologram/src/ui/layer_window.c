@@ -9,8 +9,10 @@
 static void niri_event_handler(const char *event_type, struct json_object *event_data, gpointer user_data) {
     hologram_app_t *app = (hologram_app_t *)user_data;
     orbital_system_handle_event(&app->sys, event_type, event_data);
-    if (app->drawing_area) {
-        gtk_widget_queue_draw(app->drawing_area);
+    for (int i = 0; i < app->view_count; i++) {
+        if (app->views[i].drawing_area) {
+            gtk_widget_queue_draw(app->views[i].drawing_area);
+        }
     }
 }
 
@@ -61,8 +63,10 @@ static gboolean on_frame_tick(gpointer user_data) {
         app->sys.hovered_core = FALSE;
     }
 
-    if (app->drawing_area) {
-        gtk_widget_queue_draw(app->drawing_area);
+    for (int i = 0; i < app->view_count; i++) {
+        if (app->views[i].drawing_area) {
+            gtk_widget_queue_draw(app->views[i].drawing_area);
+        }
     }
 
     return G_SOURCE_CONTINUE;
@@ -374,44 +378,51 @@ void layer_window_set_mode(hologram_app_t *app, gboolean command_center_mode) {
     app->is_command_center_mode = command_center_mode;
     app->cc.is_active = command_center_mode;
 
-    if (command_center_mode) {
-        // Fullscreen overlay mode
-        gtk_layer_set_layer(GTK_WINDOW(app->window), GTK_LAYER_SHELL_LAYER_OVERLAY);
-        gtk_layer_set_keyboard_interactivity(GTK_WINDOW(app->window), TRUE);
+    for (int i = 0; i < app->view_count; i++) {
+        GtkWidget *win = app->views[i].window;
+        GtkWidget *da = app->views[i].drawing_area;
+        GdkMonitor *mon = app->views[i].monitor;
+        if (!win || !da) continue;
 
-        gtk_layer_set_anchor(GTK_WINDOW(app->window), GTK_LAYER_SHELL_EDGE_TOP, TRUE);
-        gtk_layer_set_anchor(GTK_WINDOW(app->window), GTK_LAYER_SHELL_EDGE_BOTTOM, TRUE);
-        gtk_layer_set_anchor(GTK_WINDOW(app->window), GTK_LAYER_SHELL_EDGE_LEFT, TRUE);
-        gtk_layer_set_anchor(GTK_WINDOW(app->window), GTK_LAYER_SHELL_EDGE_RIGHT, TRUE);
+        if (command_center_mode) {
+            gtk_layer_set_layer(GTK_WINDOW(win), GTK_LAYER_SHELL_LAYER_OVERLAY);
+            gtk_layer_set_keyboard_interactivity(GTK_WINDOW(win), TRUE);
 
-        gtk_layer_set_margin(GTK_WINDOW(app->window), GTK_LAYER_SHELL_EDGE_TOP, 0);
-        gtk_layer_set_margin(GTK_WINDOW(app->window), GTK_LAYER_SHELL_EDGE_BOTTOM, 0);
-        gtk_layer_set_margin(GTK_WINDOW(app->window), GTK_LAYER_SHELL_EDGE_LEFT, 0);
-        gtk_layer_set_margin(GTK_WINDOW(app->window), GTK_LAYER_SHELL_EDGE_RIGHT, 0);
+            gtk_layer_set_anchor(GTK_WINDOW(win), GTK_LAYER_SHELL_EDGE_TOP, TRUE);
+            gtk_layer_set_anchor(GTK_WINDOW(win), GTK_LAYER_SHELL_EDGE_BOTTOM, TRUE);
+            gtk_layer_set_anchor(GTK_WINDOW(win), GTK_LAYER_SHELL_EDGE_LEFT, TRUE);
+            gtk_layer_set_anchor(GTK_WINDOW(win), GTK_LAYER_SHELL_EDGE_RIGHT, TRUE);
 
-        gtk_widget_set_size_request(app->window, 1706, 1066);
-        gtk_widget_set_size_request(app->drawing_area, 1706, 1066);
-    } else {
-        // Compact Desktop Bridge Hologram Mode (centered between telemetry modules)
-        gtk_layer_set_layer(GTK_WINDOW(app->window), GTK_LAYER_SHELL_LAYER_BOTTOM);
-        gtk_layer_set_keyboard_interactivity(GTK_WINDOW(app->window), FALSE);
+            gtk_layer_set_margin(GTK_WINDOW(win), GTK_LAYER_SHELL_EDGE_TOP, 0);
+            gtk_layer_set_margin(GTK_WINDOW(win), GTK_LAYER_SHELL_EDGE_BOTTOM, 0);
+            gtk_layer_set_margin(GTK_WINDOW(win), GTK_LAYER_SHELL_EDGE_LEFT, 0);
+            gtk_layer_set_margin(GTK_WINDOW(win), GTK_LAYER_SHELL_EDGE_RIGHT, 0);
 
-        gtk_layer_set_anchor(GTK_WINDOW(app->window), GTK_LAYER_SHELL_EDGE_TOP, TRUE);
-        gtk_layer_set_anchor(GTK_WINDOW(app->window), GTK_LAYER_SHELL_EDGE_BOTTOM, FALSE);
-        gtk_layer_set_anchor(GTK_WINDOW(app->window), GTK_LAYER_SHELL_EDGE_LEFT, TRUE);
-        gtk_layer_set_anchor(GTK_WINDOW(app->window), GTK_LAYER_SHELL_EDGE_RIGHT, FALSE);
+            GdkRectangle geom = {0, 0, 1920, 1080};
+            if (mon) gdk_monitor_get_geometry(mon, &geom);
+            gtk_widget_set_size_request(win, geom.width, geom.height);
+            gtk_widget_set_size_request(da, geom.width, geom.height);
+        } else {
+            gtk_layer_set_layer(GTK_WINDOW(win), GTK_LAYER_SHELL_LAYER_BOTTOM);
+            gtk_layer_set_keyboard_interactivity(GTK_WINDOW(win), FALSE);
 
-        gtk_layer_set_margin(GTK_WINDOW(app->window), GTK_LAYER_SHELL_EDGE_TOP, 48);
-        gtk_layer_set_margin(GTK_WINDOW(app->window), GTK_LAYER_SHELL_EDGE_BOTTOM, 0);
-        gtk_layer_set_margin(GTK_WINDOW(app->window), GTK_LAYER_SHELL_EDGE_LEFT, 483);
-        gtk_layer_set_margin(GTK_WINDOW(app->window), GTK_LAYER_SHELL_EDGE_RIGHT, 0);
+            gtk_layer_set_anchor(GTK_WINDOW(win), GTK_LAYER_SHELL_EDGE_TOP, TRUE);
+            gtk_layer_set_anchor(GTK_WINDOW(win), GTK_LAYER_SHELL_EDGE_BOTTOM, FALSE);
+            gtk_layer_set_anchor(GTK_WINDOW(win), GTK_LAYER_SHELL_EDGE_LEFT, FALSE);
+            gtk_layer_set_anchor(GTK_WINDOW(win), GTK_LAYER_SHELL_EDGE_RIGHT, FALSE);
 
-        gtk_widget_set_size_request(app->window, 740, 640);
-        gtk_widget_set_size_request(app->drawing_area, 740, 640);
+            gtk_layer_set_margin(GTK_WINDOW(win), GTK_LAYER_SHELL_EDGE_TOP, 48);
+            gtk_layer_set_margin(GTK_WINDOW(win), GTK_LAYER_SHELL_EDGE_BOTTOM, 0);
+            gtk_layer_set_margin(GTK_WINDOW(win), GTK_LAYER_SHELL_EDGE_LEFT, 0);
+            gtk_layer_set_margin(GTK_WINDOW(win), GTK_LAYER_SHELL_EDGE_RIGHT, 0);
+
+            gtk_widget_set_size_request(win, 740, 640);
+            gtk_widget_set_size_request(da, 740, 640);
+        }
+
+        gtk_widget_queue_resize(win);
+        gtk_widget_queue_draw(da);
     }
-
-    gtk_widget_queue_resize(app->window);
-    gtk_widget_queue_draw(app->drawing_area);
 }
 
 void layer_window_toggle_mode(hologram_app_t *app) {
@@ -435,47 +446,64 @@ static void load_hologram_css(void) {
     g_object_unref(provider);
 }
 
-gboolean layer_window_init(hologram_app_t *app, gboolean start_as_command_center) {
-    load_hologram_css();
+static void create_view_for_monitor(hologram_app_t *app, GdkMonitor *monitor, gboolean start_as_command_center) {
+    if (!monitor) return;
 
-    app->window = gtk_window_new(GTK_WINDOW_TOPLEVEL);
-    gtk_window_set_title(GTK_WINDOW(app->window), "solaris-bg-hologram");
+    for (int i = 0; i < app->view_count; i++) {
+        if (app->views[i].monitor == monitor) return; // already exists
+    }
+
+    if (app->view_count >= MAX_HOLOGRAM_MONITORS) return;
+
+    int idx = app->view_count;
+    GtkWidget *win = gtk_window_new(GTK_WINDOW_TOPLEVEL);
+    gtk_window_set_title(GTK_WINDOW(win), "solaris-bg-hologram");
 
     // True background transparency
-    GdkScreen *screen = gtk_widget_get_screen(app->window);
+    GdkScreen *screen = gtk_widget_get_screen(win);
     GdkVisual *visual = gdk_screen_get_rgba_visual(screen);
     if (visual && gdk_screen_is_composited(screen)) {
-        gtk_widget_set_visual(app->window, visual);
+        gtk_widget_set_visual(win, visual);
     }
-    gtk_widget_set_app_paintable(app->window, TRUE);
+    gtk_widget_set_app_paintable(win, TRUE);
 
     // Initialize layer shell
-    gtk_layer_init_for_window(GTK_WINDOW(app->window));
-    gtk_layer_set_layer(GTK_WINDOW(app->window), start_as_command_center ? GTK_LAYER_SHELL_LAYER_OVERLAY : GTK_LAYER_SHELL_LAYER_BOTTOM);
-    gtk_layer_set_keyboard_interactivity(GTK_WINDOW(app->window), start_as_command_center);
-    gtk_layer_set_namespace(GTK_WINDOW(app->window), "solaris-bg");
+    gtk_layer_init_for_window(GTK_WINDOW(win));
+    gtk_layer_set_monitor(GTK_WINDOW(win), monitor);
+    gtk_layer_set_layer(GTK_WINDOW(win), start_as_command_center ? GTK_LAYER_SHELL_LAYER_OVERLAY : GTK_LAYER_SHELL_LAYER_BOTTOM);
+    gtk_layer_set_keyboard_interactivity(GTK_WINDOW(win), start_as_command_center);
+    gtk_layer_set_namespace(GTK_WINDOW(win), "solaris-bg");
+
+    GtkWidget *da = gtk_drawing_area_new();
 
     if (start_as_command_center) {
-        gtk_layer_set_anchor(GTK_WINDOW(app->window), GTK_LAYER_SHELL_EDGE_TOP, TRUE);
-        gtk_layer_set_anchor(GTK_WINDOW(app->window), GTK_LAYER_SHELL_EDGE_BOTTOM, TRUE);
-        gtk_layer_set_anchor(GTK_WINDOW(app->window), GTK_LAYER_SHELL_EDGE_LEFT, TRUE);
-        gtk_layer_set_anchor(GTK_WINDOW(app->window), GTK_LAYER_SHELL_EDGE_RIGHT, TRUE);
-        gtk_widget_set_size_request(app->window, 1706, 1066);
+        gtk_layer_set_anchor(GTK_WINDOW(win), GTK_LAYER_SHELL_EDGE_TOP, TRUE);
+        gtk_layer_set_anchor(GTK_WINDOW(win), GTK_LAYER_SHELL_EDGE_BOTTOM, TRUE);
+        gtk_layer_set_anchor(GTK_WINDOW(win), GTK_LAYER_SHELL_EDGE_LEFT, TRUE);
+        gtk_layer_set_anchor(GTK_WINDOW(win), GTK_LAYER_SHELL_EDGE_RIGHT, TRUE);
+        gtk_layer_set_margin(GTK_WINDOW(win), GTK_LAYER_SHELL_EDGE_TOP, 0);
+        gtk_layer_set_margin(GTK_WINDOW(win), GTK_LAYER_SHELL_EDGE_BOTTOM, 0);
+        gtk_layer_set_margin(GTK_WINDOW(win), GTK_LAYER_SHELL_EDGE_LEFT, 0);
+        gtk_layer_set_margin(GTK_WINDOW(win), GTK_LAYER_SHELL_EDGE_RIGHT, 0);
+
+        GdkRectangle geom = {0, 0, 1920, 1080};
+        gdk_monitor_get_geometry(monitor, &geom);
+        gtk_widget_set_size_request(win, geom.width, geom.height);
+        gtk_widget_set_size_request(da, geom.width, geom.height);
     } else {
-        gtk_layer_set_anchor(GTK_WINDOW(app->window), GTK_LAYER_SHELL_EDGE_TOP, TRUE);
-        gtk_layer_set_anchor(GTK_WINDOW(app->window), GTK_LAYER_SHELL_EDGE_BOTTOM, FALSE);
-        gtk_layer_set_anchor(GTK_WINDOW(app->window), GTK_LAYER_SHELL_EDGE_LEFT, TRUE);
-        gtk_layer_set_anchor(GTK_WINDOW(app->window), GTK_LAYER_SHELL_EDGE_RIGHT, FALSE);
-        gtk_layer_set_margin(GTK_WINDOW(app->window), GTK_LAYER_SHELL_EDGE_TOP, 48);
-        gtk_layer_set_margin(GTK_WINDOW(app->window), GTK_LAYER_SHELL_EDGE_BOTTOM, 0);
-        gtk_layer_set_margin(GTK_WINDOW(app->window), GTK_LAYER_SHELL_EDGE_LEFT, 483);
-        gtk_layer_set_margin(GTK_WINDOW(app->window), GTK_LAYER_SHELL_EDGE_RIGHT, 0);
-        gtk_widget_set_size_request(app->window, 740, 640);
+        gtk_layer_set_anchor(GTK_WINDOW(win), GTK_LAYER_SHELL_EDGE_TOP, TRUE);
+        gtk_layer_set_anchor(GTK_WINDOW(win), GTK_LAYER_SHELL_EDGE_BOTTOM, FALSE);
+        gtk_layer_set_anchor(GTK_WINDOW(win), GTK_LAYER_SHELL_EDGE_LEFT, FALSE);
+        gtk_layer_set_anchor(GTK_WINDOW(win), GTK_LAYER_SHELL_EDGE_RIGHT, FALSE);
+        gtk_layer_set_margin(GTK_WINDOW(win), GTK_LAYER_SHELL_EDGE_TOP, 48);
+        gtk_layer_set_margin(GTK_WINDOW(win), GTK_LAYER_SHELL_EDGE_BOTTOM, 0);
+        gtk_layer_set_margin(GTK_WINDOW(win), GTK_LAYER_SHELL_EDGE_LEFT, 0);
+        gtk_layer_set_margin(GTK_WINDOW(win), GTK_LAYER_SHELL_EDGE_RIGHT, 0);
+        gtk_widget_set_size_request(win, 740, 640);
+        gtk_widget_set_size_request(da, 740, 640);
     }
 
-    // Drawing area
-    app->drawing_area = gtk_drawing_area_new();
-    gtk_widget_add_events(app->drawing_area,
+    gtk_widget_add_events(da,
                           GDK_BUTTON_PRESS_MASK |
                           GDK_BUTTON_RELEASE_MASK |
                           GDK_POINTER_MOTION_MASK |
@@ -483,15 +511,76 @@ gboolean layer_window_init(hologram_app_t *app, gboolean start_as_command_center
                           GDK_ENTER_NOTIFY_MASK |
                           GDK_LEAVE_NOTIFY_MASK);
 
-    g_signal_connect(app->drawing_area, "draw", G_CALLBACK(on_draw), app);
-    g_signal_connect(app->drawing_area, "button-press-event", G_CALLBACK(on_button_press), app);
-    g_signal_connect(app->drawing_area, "button-release-event", G_CALLBACK(on_button_release), app);
-    g_signal_connect(app->drawing_area, "motion-notify-event", G_CALLBACK(on_motion_notify), app);
-    g_signal_connect(app->drawing_area, "leave-notify-event", G_CALLBACK(on_leave_notify), app);
-    g_signal_connect(app->drawing_area, "scroll-event", G_CALLBACK(on_scroll), app);
-    g_signal_connect(app->window, "key-press-event", G_CALLBACK(on_key_press), app);
+    g_signal_connect(da, "draw", G_CALLBACK(on_draw), app);
+    g_signal_connect(da, "button-press-event", G_CALLBACK(on_button_press), app);
+    g_signal_connect(da, "button-release-event", G_CALLBACK(on_button_release), app);
+    g_signal_connect(da, "motion-notify-event", G_CALLBACK(on_motion_notify), app);
+    g_signal_connect(da, "leave-notify-event", G_CALLBACK(on_leave_notify), app);
+    g_signal_connect(da, "scroll-event", G_CALLBACK(on_scroll), app);
+    g_signal_connect(win, "key-press-event", G_CALLBACK(on_key_press), app);
 
-    gtk_container_add(GTK_CONTAINER(app->window), app->drawing_area);
+    gtk_container_add(GTK_CONTAINER(win), da);
+
+    app->views[idx].window = win;
+    app->views[idx].drawing_area = da;
+    app->views[idx].monitor = monitor;
+    app->view_count++;
+
+    if (idx == 0) {
+        app->window = win;
+        app->drawing_area = da;
+    }
+
+    gtk_widget_show_all(win);
+}
+
+static void on_monitor_added(GdkDisplay *display, GdkMonitor *monitor, gpointer user_data) {
+    hologram_app_t *app = (hologram_app_t *)user_data;
+    create_view_for_monitor(app, monitor, app->is_command_center_mode);
+}
+
+static void on_monitor_removed(GdkDisplay *display, GdkMonitor *monitor, gpointer user_data) {
+    hologram_app_t *app = (hologram_app_t *)user_data;
+    for (int i = 0; i < app->view_count; i++) {
+        if (app->views[i].monitor == monitor) {
+            gtk_widget_destroy(app->views[i].window);
+            for (int j = i; j < app->view_count - 1; j++) {
+                app->views[j] = app->views[j + 1];
+            }
+            app->view_count--;
+            break;
+        }
+    }
+    if (app->view_count > 0) {
+        app->window = app->views[0].window;
+        app->drawing_area = app->views[0].drawing_area;
+    } else {
+        app->window = NULL;
+        app->drawing_area = NULL;
+    }
+}
+
+gboolean layer_window_init(hologram_app_t *app, gboolean start_as_command_center) {
+    load_hologram_css();
+
+    app->view_count = 0;
+    app->window = NULL;
+    app->drawing_area = NULL;
+
+    GdkDisplay *display = gdk_display_get_default();
+    if (!display) {
+        fprintf(stderr, "[Solaris Error] Failed to get GdkDisplay.\n");
+        return FALSE;
+    }
+
+    int n_monitors = gdk_display_get_n_monitors(display);
+    for (int i = 0; i < n_monitors; i++) {
+        GdkMonitor *mon = gdk_display_get_monitor(display, i);
+        create_view_for_monitor(app, mon, start_as_command_center);
+    }
+
+    g_signal_connect(display, "monitor-added", G_CALLBACK(on_monitor_added), app);
+    g_signal_connect(display, "monitor-removed", G_CALLBACK(on_monitor_removed), app);
 
     // Subsystems
     orbital_system_init(&app->sys);
@@ -519,6 +608,5 @@ gboolean layer_window_init(hologram_app_t *app, gboolean start_as_command_center
     gettimeofday(&app->last_time, NULL);
     app->timer_id = g_timeout_add(16, on_frame_tick, app);
 
-    gtk_widget_show_all(app->window);
-    return TRUE;
+    return (app->view_count > 0);
 }

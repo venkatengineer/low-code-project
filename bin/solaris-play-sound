@@ -10,8 +10,7 @@ import os
 import sys
 import subprocess
 
-HOME_DIR = os.path.expanduser("~")
-SOUND_DIR = os.environ.get("SOLARIS_SOUND_DIR", f"{HOME_DIR}/.local/share/solaris/sounds")
+SOUND_DIR = "/home/venkatengineer/.local/share/solaris/sounds"
 SOUND_MAP = {
     "unlock": f"{SOUND_DIR}/solaris_unlock.wav",
     "lock": f"{SOUND_DIR}/solaris_unlock.wav",
@@ -32,20 +31,47 @@ SOUND_MAP = {
     "wake": f"{SOUND_DIR}/spaceship_awakening.wav",
 }
 
-def ensure_audio_unmuted():
+def is_audio_muted():
+    """Returns True if the system audio sink is muted or volume is zero."""
     try:
-        subprocess.run(["wpctl", "set-mute", "@DEFAULT_AUDIO_SINK@", "0"], stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL, check=False)
-        subprocess.run(["wpctl", "set-volume", "@DEFAULT_AUDIO_SINK@", "1.0"], stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL, check=False)
-        for ctrl in ['Master', 'Speaker', 'Headphone', 'PCM']:
-            subprocess.run(["amixer", "-c", "0", "sset", ctrl, "100%", "unmute"], stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL, check=False)
+        res = subprocess.run(
+            ["wpctl", "get-volume", "@DEFAULT_AUDIO_SINK@"],
+            capture_output=True, text=True, timeout=1, check=False
+        )
+        if res.returncode == 0:
+            out = res.stdout.strip()
+            if "[MUTED]" in out:
+                return True
+            parts = out.split()
+            if len(parts) >= 2:
+                try:
+                    vol = float(parts[1])
+                    if vol <= 0.001:
+                        return True
+                except ValueError:
+                    pass
     except Exception:
         pass
+
+    try:
+        res = subprocess.run(
+            ["amixer", "get", "Master"],
+            capture_output=True, text=True, timeout=1, check=False
+        )
+        if res.returncode == 0 and "[off]" in res.stdout:
+            return True
+    except Exception:
+        pass
+
+    return False
 
 def play(path):
     if not os.path.exists(path):
         return False
 
-    ensure_audio_unmuted()
+    # IF MUTED, REMAIN 100% SILENT. DO NOT UNMUTE OR OVERRIDE VOLUME.
+    if is_audio_muted():
+        return False
 
     env = os.environ.copy()
     uid = os.getuid()
@@ -72,12 +98,14 @@ def main():
         print("Usage: solaris-play-sound <sound_name_or_file>")
         sys.exit(1)
 
+    # If the user has muted sound, do NOT play anything and exit cleanly
+    if is_audio_muted():
+        sys.exit(0)
+
     target = sys.argv[1].lower()
     if target in ("unlock", "lock", "startup", "engine_start"):
-        dispatcher = f"{HOME_DIR}/.local/share/sounds/play_unlock_sequence.py"
-        py_bin = f"{HOME_DIR}/.local/share/solaris-voice-env/bin/python3"
-        if not os.path.exists(py_bin):
-            py_bin = sys.executable
+        dispatcher = "/home/venkatengineer/.local/share/sounds/play_unlock_sequence.py"
+        py_bin = "/home/venkatengineer/.local/share/solaris-voice-env/bin/python3"
         if os.path.exists(dispatcher) and os.path.exists(py_bin):
             res = subprocess.run([py_bin, dispatcher], check=False)
             sys.exit(res.returncode)

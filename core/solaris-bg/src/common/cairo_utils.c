@@ -553,6 +553,7 @@ void cairo_draw_cyber_gpu_tachometer(cairo_t *cr, double x, double y, double w, 
                                      double vram_used, double vram_total,
                                      const char *model, double phase) {
     cairo_save(cr);
+    cairo_new_path(cr);
 
     // 1. Left Tachometer Gauge for GPU Load
     double g_cx = x + 42.0;
@@ -564,6 +565,7 @@ void cairo_draw_cyber_gpu_tachometer(cairo_t *cr, double x, double y, double w, 
     double total_sweep = 4.0 * M_PI / 3.0;
 
     // Track
+    cairo_new_sub_path(cr);
     cairo_set_source_rgba(cr, 0.06, 0.10, 0.15, 0.7);
     cairo_set_line_width(cr, 6.0);
     cairo_arc(cr, g_cx, g_cy, g_r, start_angle, end_angle);
@@ -659,6 +661,7 @@ void cairo_draw_cyber_gpu_tachometer(cairo_t *cr, double x, double y, double w, 
     cairo_move_to(cr, info_x, y + 68.0);
     cairo_show_text(cr, "TENSOR RASTER // 3D ON");
 
+    cairo_new_path(cr);
     cairo_restore(cr);
 }
 
@@ -992,8 +995,10 @@ void cairo_draw_spacecraft_power_core(cairo_t *cr, double cx, double cy, double 
 void cairo_draw_cooling_turbine(cairo_t *cr, double cx, double cy, double radius,
                                 int rpm, double temp_c, double phase) {
     cairo_save(cr);
+    cairo_new_path(cr);
 
     // Outer turbine shroud
+    cairo_new_sub_path(cr);
     cairo_set_source_rgba(cr, 0.03, 0.06, 0.09, 0.85);
     cairo_arc(cr, cx, cy, radius, 0, 2 * M_PI);
     cairo_fill_preserve(cr);
@@ -1018,6 +1023,7 @@ void cairo_draw_cooling_turbine(cairo_t *cr, double cx, double cy, double radius
     }
 
     // Center Hub
+    cairo_new_sub_path(cr);
     cairo_set_source_rgba(cr, 0.08, 0.14, 0.20, 0.95);
     cairo_arc(cr, cx, cy, radius * 0.32, 0, 2 * M_PI);
     cairo_fill_preserve(cr);
@@ -1025,6 +1031,7 @@ void cairo_draw_cooling_turbine(cairo_t *cr, double cx, double cy, double radius
     cairo_set_line_width(cr, 1.2);
     cairo_stroke(cr);
 
+    cairo_new_path(cr);
     cairo_restore(cr);
 }
 

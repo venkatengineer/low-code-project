@@ -1,4 +1,4 @@
-#!/usr/bin/env python3
+#!/home/venkatengineer/.local/share/solaris-voice-env/bin/python3
 """
 🛸 SOLARIS SPACECRAFT // VOICE & UNLOCK AUDIO TELEMETRY DISPATCHER
 Plays the original spaceship engine startup audio, gathers live CPU temperatures
@@ -21,9 +21,8 @@ os.environ["PULSE_SERVER"] = "/run/user/1000/pulse/native"
 # Ignore SIGHUP so parent shell termination doesn't kill audio playback
 signal.signal(signal.SIGHUP, signal.SIG_IGN)
 
-HOME_DIR = os.path.expanduser("~")
-SOUND_ENGINE = f"{HOME_DIR}/.local/share/sounds/spaceship_engine_start.wav"
-FALLBACK_TTS = f"{HOME_DIR}/.local/share/sounds/solaris_nominal_telemetry.wav"
+SOUND_ENGINE = "/home/venkatengineer/.local/share/sounds/spaceship_engine_start.wav"
+FALLBACK_TTS = "/home/venkatengineer/.local/share/sounds/solaris_nominal_telemetry.wav"
 TELEMETRY_CACHE = "/tmp/solaris_telemetry.mp3"
 LOCK_FILE = "/tmp/solaris_unlock_sequence.lock"
 LOG_FILE = "/tmp/solaris_unlock_sequence.log"
@@ -58,18 +57,39 @@ def check_and_acquire_lock():
         pass
     return True
 
-def ensure_audio_unmuted():
-    """Ensure audio output sink & ALSA hardware controls are unmuted and at full volume."""
+def is_audio_muted():
+    """Returns True if the system audio sink is muted or volume is zero."""
     try:
-        subprocess.run(["wpctl", "set-mute", "@DEFAULT_AUDIO_SINK@", "0"],
-                       check=False, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
-        subprocess.run(["wpctl", "set-volume", "@DEFAULT_AUDIO_SINK@", "1.0"],
-                       check=False, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
-        for ctrl in ['Master', 'Headphone', 'Speaker', 'PCM']:
-            subprocess.run(["amixer", "-c", "0", "sset", ctrl, "100%", "unmute"],
-                           check=False, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
-    except Exception as e:
-        log(f"Unmute error: {e}")
+        res = subprocess.run(
+            ["wpctl", "get-volume", "@DEFAULT_AUDIO_SINK@"],
+            capture_output=True, text=True, timeout=1, check=False
+        )
+        if res.returncode == 0:
+            out = res.stdout.strip()
+            if "[MUTED]" in out:
+                return True
+            parts = out.split()
+            if len(parts) >= 2:
+                try:
+                    vol = float(parts[1])
+                    if vol <= 0.001:
+                        return True
+                except ValueError:
+                    pass
+    except Exception:
+        pass
+
+    try:
+        res = subprocess.run(
+            ["amixer", "get", "Master"],
+            capture_output=True, text=True, timeout=1, check=False
+        )
+        if res.returncode == 0 and "[off]" in res.stdout:
+            return True
+    except Exception:
+        pass
+
+    return False
 
 def get_cpu_temp():
     try:
@@ -150,12 +170,14 @@ def main():
     if not check_and_acquire_lock():
         sys.exit(0)
 
+    # If the user has muted sound, do NOT play anything and exit cleanly
+    if is_audio_muted():
+        log("Audio is currently muted -- unlock audio sequence remaining completely silent.")
+        sys.exit(0)
+
     log("Starting original unlock audio sequence...")
 
-    # 1. Unmute output immediately
-    ensure_audio_unmuted()
-
-    # 2. Start playing original engine sound IMMEDIATELY
+    # Start playing original engine sound IMMEDIATELY (at user's current volume, without overriding mute)
     engine_proc = None
     if os.path.exists(SOUND_ENGINE):
         log(f"Launching original engine audio: {SOUND_ENGINE}")
