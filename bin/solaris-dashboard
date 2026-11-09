@@ -20,6 +20,8 @@ OZONE_FLAGS=(
     "--ozone-platform-hint=auto"
     "--enable-features=UseOzonePlatform,WaylandWindowDecorations"
     "--disable-gpu-sandbox"
+    "--use-gl=angle"
+    "--use-angle=swiftshader-webgl"
 )
 
 exec "$RUNTIME" "${OZONE_FLAGS[@]}" "$APP_DIR/electron/main.cjs" "$@"

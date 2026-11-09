@@ -23,6 +23,10 @@ static void print_usage(const char *prog) {
     printf("  %s [options]\n\n", prog);
     printf("Options:\n");
     printf("  --background, -b      Run as desktop background layer (default)\n");
+    printf("  --orbital             Switch central widget to ORBITAL planet mode\n");
+    printf("  --server              Switch central widget to 3D SERVER CORE mode\n");
+    printf("  --terminal            Switch central widget to HOLOGRAPHIC TERMINAL mode\n");
+    printf("  --toggle-core         Toggle between ORBITAL and SERVER CORE\n");
     printf("  --command-center, -c  Launch directly into fullscreen Command Center HUD\n");
     printf("  --toggle, -t          Toggle Command Center HUD overlay on running instance\n");
     printf("  --status, -s          Print current Niri workspaces and windows status\n");
@@ -36,6 +40,26 @@ int main(int argc, char **argv) {
     for (int i = 1; i < argc; i++) {
         if (strcmp(argv[i], "--help") == 0 || strcmp(argv[i], "-h") == 0) {
             print_usage(argv[0]);
+            return 0;
+        } else if (strcmp(argv[i], "--orbital") == 0) {
+            FILE *fp = fopen("/tmp/solaris_core_mode", "w");
+            if (fp) { fputs("orbital\n", fp); fclose(fp); }
+            printf("[Solaris Core] Switched to ORBITAL mode.\n");
+            return 0;
+        } else if (strcmp(argv[i], "--server") == 0) {
+            FILE *fp = fopen("/tmp/solaris_core_mode", "w");
+            if (fp) { fputs("server\n", fp); fclose(fp); }
+            printf("[Solaris Core] Switched to 3D SERVER CORE mode.\n");
+            return 0;
+        } else if (strcmp(argv[i], "--terminal") == 0) {
+            FILE *fp = fopen("/tmp/solaris_core_mode", "w");
+            if (fp) { fputs("terminal\n", fp); fclose(fp); }
+            printf("[Solaris Core] Switched to HOLOGRAPHIC TERMINAL mode.\n");
+            return 0;
+        } else if (strcmp(argv[i], "--toggle-core") == 0) {
+            FILE *fp = fopen("/tmp/solaris_core_mode", "w");
+            if (fp) { fputs("toggle\n", fp); fclose(fp); }
+            printf("[Solaris Core] Toggled central core mode.\n");
             return 0;
         } else if (strcmp(argv[i], "--command-center") == 0 || strcmp(argv[i], "-c") == 0) {
             start_command_center = TRUE;

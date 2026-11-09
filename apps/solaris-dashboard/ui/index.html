@@ -5,6 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Solaris - Spacecraft Command Bridge</title>
   <link rel="stylesheet" href="styles.css">
+  <link rel="stylesheet" href="../node_modules/@xterm/xterm/css/xterm.css">
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;600;700;800&family=Rajdhani:wght@500;600;700&family=Orbitron:wght@600;700;800;900&display=swap" rel="stylesheet">
@@ -263,10 +264,9 @@
             </div>
           </div>
 
-          <!-- CENTRAL 3D HOLOGRAPHIC RADAR EMITTER -->
+          <!-- CENTRAL 3D HOLOGRAPHIC RADAR EMITTER / ORBITAL CORE -->
           <div class="central-3d-radar-platform" id="radar-3d-interactive">
-            <div class="radar-viewport">
-              <canvas id="canvas-3d-radar" width="340" height="340"></canvas>
+            <div class="radar-viewport" id="orbital-core-viewport">
               <div class="radar-emitter-ring"></div>
             </div>
           </div>
@@ -522,6 +522,12 @@
 
   </div>
 
-  <script src="dashboard.js"></script>
+  <!-- Vendor Libraries for 3D & Holographic Subsystems -->
+  <script src="../node_modules/gsap/dist/gsap.min.js"></script>
+  <script src="../node_modules/@xterm/xterm/lib/xterm.js"></script>
+  <script src="../node_modules/@xterm/addon-fit/lib/addon-fit.js"></script>
+
+  <!-- Cockpit Master Dashboard Script (ES Module) -->
+  <script type="module" src="dashboard.js"></script>
 </body>
 </html>

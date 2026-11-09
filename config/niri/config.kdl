@@ -206,20 +206,6 @@ window-rule {
     }
 }
 
-// Spacecraft Station Definitions
-workspace "background"
-
-// Background Audio Daemon
-window-rule {
-    match app-id=r#"^spotify$"#
-    open-on-workspace "background"
-    open-floating true
-    open-focused false
-    opacity 0.0
-    block-out-from "screen-capture"
-    default-column-width { proportion 0.01; }
-    default-window-height { proportion 0.01; }
-}
 
 // Aerospace Small Corner Radius (Precision Chamfer)
 window-rule {

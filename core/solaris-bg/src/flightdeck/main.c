@@ -1595,7 +1595,13 @@ static gboolean on_button_press(GtkWidget *widget, GdkEventButton *event, gpoint
                 }
                 break;
             case 12: // VPN
-                g_spawn_command_line_async("sh -c 'nmcli con up id wg0 2>/dev/null || nmcli con up id vpn 2>/dev/null || true'", NULL);
+                if (access("/home/venkatengineer/.local/bin/solaris-vpn-toggle", X_OK) == 0) {
+                    g_spawn_command_line_async("/home/venkatengineer/.local/bin/solaris-vpn-toggle", NULL);
+                } else if (g_app.state.vpn_on) {
+                    g_spawn_command_line_async("sh -c 'nmcli con down id wg0 2>/dev/null || nmcli con down id vpn 2>/dev/null || true'", NULL);
+                } else {
+                    g_spawn_command_line_async("sh -c 'nmcli con up id wg0 2>/dev/null || nmcli con up id vpn 2>/dev/null || true'", NULL);
+                }
                 break;
             case 13: // Mic Mute Toggle
                 g_spawn_command_line_async("wpctl set-mute @DEFAULT_AUDIO_SOURCE@ toggle", NULL);

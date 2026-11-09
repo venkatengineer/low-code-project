@@ -21,56 +21,18 @@ function isSpotifyRunning() {
 }
 
 function startSpotifyDaemon() {
-  if (isSpotifyRunning()) {
-    console.log('[AETHERIS-SPOTIFY] Spotify background daemon is already running.');
-    return;
-  }
-
-  console.log('[AETHERIS-SPOTIFY] Launching background Spotify audio daemon via spotify-launcher...');
-  try {
-    spotifyProcess = spawn('spotify-launcher', [], {
-      detached: true,
-      stdio: 'ignore',
-      env: {
-        ...process.env,
-      },
-    });
-
-    spotifyProcess.unref();
-    spawnedSpotifyByAetheris = true;
-    console.log(`[AETHERIS-SPOTIFY] Spotify process spawned successfully (PID: ${spotifyProcess.pid}).`);
-
-    spotifyProcess.on('exit', (code, signal) => {
-      console.log(`[AETHERIS-SPOTIFY] Spotify process exited (code: ${code}, signal: ${signal})`);
-      spotifyProcess = null;
-    });
-  } catch (err) {
-    console.warn('[AETHERIS-SPOTIFY] Failed to spawn spotify-launcher:', err.message);
-  }
+  // Disabled: do not auto-launch background Spotify daemon
+  return;
 }
 
 function ensureSpotifyRunning() {
-  if (!isSpotifyRunning()) {
-    startSpotifyDaemon();
-  }
+  // Disabled: do not auto-launch background Spotify daemon
+  return;
 }
 
 function stopSpotifyDaemon() {
-  console.log('[AETHERIS-SPOTIFY] Aetheris closing -- terminating background Spotify instance...');
-  try {
-    if (spotifyProcess && !spotifyProcess.killed) {
-      try { process.kill(-spotifyProcess.pid, 'SIGKILL'); } catch (e) {}
-      try { spotifyProcess.kill('SIGKILL'); } catch (e) {}
-      spotifyProcess = null;
-    }
-  } catch (e) {}
-
-  try {
-    execSync('pkill -9 -f "/share/spotify/spotify" 2>/dev/null || pkill -9 -x spotify 2>/dev/null || true', { stdio: 'ignore' });
-    console.log('[AETHERIS-SPOTIFY] Spotify instances closed.');
-  } catch (e) {
-    console.warn('[AETHERIS-SPOTIFY] Note while closing Spotify:', e.message);
-  }
+  // Disabled: do not terminate user's Spotify process on exit
+  return;
 }
 
 // Configure application name for Linux desktop integration and Wayland app_id

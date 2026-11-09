@@ -2,9 +2,21 @@
 // 🛸 SOLARIS SPACECRAFT COMMAND BRIDGE — DASHBOARD ENGINE
 // 60FPS Holographic 3D Canvas Rendering · Real Linux Telemetry Stream
 // ==============================================================================
+import { OrbitalCore } from './orbital-core/OrbitalCore.js';
 
 (function() {
   'use strict';
+
+  // Initialize Interactive 3D Orbital Core Subsystem
+  const orbitalCoreViewport = document.getElementById('orbital-core-viewport') || document.getElementById('radar-3d-interactive');
+  let orbitalCore = null;
+  if (orbitalCoreViewport) {
+    try {
+      orbitalCore = new OrbitalCore(orbitalCoreViewport);
+    } catch (err) {
+      console.error('[OrbitalCore Init Error]', err);
+    }
+  }
 
   // State Buffers
   const historyCPU = new Array(30).fill(15);
@@ -454,7 +466,7 @@
 
   // Global 60FPS Render Loop
   function animationLoop() {
-    draw3DRadar();
+    if (ctxRadar) draw3DRadar();
     drawWifiRadar();
     drawBtRadar();
     drawSpaceship();
@@ -469,6 +481,7 @@
   function updateTelemetryUI(data) {
     if (!data) return;
     currentTelemetry = data;
+    if (orbitalCore) orbitalCore.updateTelemetry(data);
 
     // --- CPU TELEMETRY ---
     if (data.cpu) {

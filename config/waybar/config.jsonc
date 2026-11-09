@@ -26,6 +26,7 @@
         "disk",
         "disk#data",
         "network",
+        "custom/vpn",
         "pulseaudio",
         "battery",
         "tray",
@@ -95,15 +96,15 @@
     },
 
     "custom/mpris-hud": {
-        "exec": "aetheris-waybar status",
+        "exec": "/home/venkatengineer/.local/bin/aetheris-waybar status",
         "return-type": "json",
         "interval": 1,
         "max-length": 40,
-        "on-click": "aetheris-waybar click",
-        "on-click-right": "aetheris-waybar toggle-hud",
-        "on-click-middle": "aetheris-waybar toggle-hud",
-        "on-scroll-up": "aetheris-waybar next",
-        "on-scroll-down": "aetheris-waybar prev"
+        "on-click": "/home/venkatengineer/.local/bin/aetheris-waybar click",
+        "on-click-right": "/home/venkatengineer/.local/bin/aetheris-waybar toggle-hud",
+        "on-click-middle": "/home/venkatengineer/.local/bin/aetheris-waybar toggle-hud",
+        "on-scroll-up": "/home/venkatengineer/.local/bin/aetheris-waybar next",
+        "on-scroll-down": "/home/venkatengineer/.local/bin/aetheris-waybar prev"
     },
 
     // =========================================================================
@@ -155,6 +156,14 @@
         "on-click": "kitty -e nmtui || nm-connection-editor"
     },
 
+    "custom/vpn": {
+        "exec": "/home/venkatengineer/.local/bin/solaris-vpn-toggle waybar",
+        "return-type": "json",
+        "interval": 2,
+        "format": "{}",
+        "on-click": "/home/venkatengineer/.local/bin/solaris-vpn-toggle"
+    },
+
     "pulseaudio": {
         "format": "{icon} {volume}%",
         "format-muted": "󰝟 MUTED",
@@ -173,16 +182,18 @@
     },
 
     "battery": {
-        "interval": 10,
+        "interval": 2,
         "states": {
             "warning": 25,
             "critical": 10
         },
         "format": "{icon} {capacity}%",
-        "format-charging": "󰂄 {capacity}%",
-        "format-plugged": "󰚥 {capacity}%",
+        "format-charging": "⚡ {capacity}%",
+        "format-plugged": "󰚥 {capacity}% (AC)",
         "format-icons": ["󰂃", "󰁺", "󰁻", "󰁼", "󰁽", "󰁾", "󰁿", "󰂀", "󰂁", "󰂂", "󰁹"],
-        "tooltip-format": "ZERO-POINT CELL: {capacity}%\nHealth: {health}%\nPower Draw: {power}W\nTime Remaining: {time}"
+        "tooltip-format": "ZERO-POINT CELL: {capacity}%\nStatus: {status}\nPower Draw: {power}W\nTime Remaining: {time}\nHealth: {health}%\n\n⟦ Left-Click: Toggle WARP Performance ⟧\n⟦ Right-Click: Cycle Power Profiles ⟧",
+        "on-click": "/home/venkatengineer/.local/bin/solaris-power-mode toggle-performance",
+        "on-click-right": "/home/venkatengineer/.local/bin/solaris-power-mode cycle"
     },
 
     "tray": {
@@ -194,7 +205,7 @@
         "format": "⏻",
         "tooltip": true,
         "tooltip-format": "MOTHERSHIP LOCKDOWN // POWER MATRIX\nClick to lock system\nRight-click for shutdown options",
-        "on-click": "solaris-lock",
+        "on-click": "/home/venkatengineer/.local/bin/solaris-lock",
         "on-click-right": "niri msg action quit"
     }
 }

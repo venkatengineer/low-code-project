@@ -31,17 +31,26 @@ struct hologram_app_s {
     gboolean is_dragging_camera;
     double drag_last_x;
     double drag_last_y;
+    double drag_start_x;
+    double drag_start_y;
     double mouse_x;
     double mouse_y;
     gboolean mouse_in_window;
 
     struct timeval last_time;
     guint timer_id;
+
+    // Gesture & Click Disambiguation State
+    server_hotspot_t pending_hotspot;
+    int pending_tab;
+    int pending_term_btn;
+    double last_swipe_time;
 };
 
 // Lifecycle
 gboolean layer_window_init(hologram_app_t *app, gboolean start_as_command_center);
 void layer_window_set_mode(hologram_app_t *app, gboolean command_center_mode);
 void layer_window_toggle_mode(hologram_app_t *app);
+void layer_window_set_keyboard_active(hologram_app_t *app, gboolean active);
 
 #endif // SOLARIS_HOLOGRAM_LAYER_WINDOW_H

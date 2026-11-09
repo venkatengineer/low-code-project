@@ -97,6 +97,8 @@ void orbital_system_init(orbital_system_t *sys) {
     sys->active_workspace_idx = 1;
     sys->is_connected = TRUE;
 
+    orbital_core_init(&sys->core);
+
     // Initialize default orbital stations 1..6
     sys->workspace_count = 6;
     for (int i = 0; i < 6; i++) {
@@ -381,9 +383,20 @@ void orbital_system_handle_event(orbital_system_t *sys, const char *event_type, 
 void orbital_system_tick(orbital_system_t *sys, double dt, double screen_w, double screen_h) {
     sys->time_sec += dt;
 
-    // Smooth cinematic auto-orbit drift and breathing pitch
-    sys->camera.target_yaw += dt * 0.06;
-    sys->camera.target_pitch = 0.88 + 0.05 * sin(sys->time_sec * 0.4);
+    // Update Interactive 3D Server & Holographic Terminal Core
+    orbital_core_update(&sys->core, dt);
+
+    // Camera navigation & cinematic autonomous flight
+    if (sys->core.target_state == CORE_STATE_ORBITAL) {
+        // Continuous full-circle orbital surveillance around workspaces
+        sys->camera.target_yaw += dt * 0.06;
+        sys->camera.target_pitch = 0.88 + 0.04 * sin(sys->time_sec * 0.4);
+    } else {
+        // Computational Terrain: Forward-facing isometric perspective with autonomous cinematic sway
+        double cinematic_sway = 0.12 * sin(sys->time_sec * 0.28);
+        sys->camera.target_yaw = 0.20 + cinematic_sway;
+        sys->camera.target_pitch = 0.58 + 0.03 * cos(sys->time_sec * 0.22);
+    }
 
     // Update 3D Camera interpolation
     camera3d_update(&sys->camera, dt);

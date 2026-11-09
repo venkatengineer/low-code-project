@@ -781,6 +781,8 @@ void cairo_draw_aerospace_power_core(cairo_t *cr, double x, double y, double w, 
                                      double phase) {
     cairo_save(cr);
 
+    gboolean is_charging = ac_online || (status && (strcasecmp(status, "Charging") == 0));
+
     // 1. Upper Battery Capacitive Tachometer Gauge
     double p_cx = x + w / 2.0;
     double p_cy = y + 54.0;
@@ -811,10 +813,29 @@ void cairo_draw_aerospace_power_core(cairo_t *cr, double x, double y, double w, 
         cairo_arc(cr, p_cx, p_cy, p_r, start_angle, cur_angle);
         cairo_stroke(cr);
 
-        cairo_set_source_rgba(cr, col_r, col_g, col_b, 0.35);
-        cairo_set_line_width(cr, 13.0);
+        // Dynamic charging halo pulse
+        double glow_w = is_charging ? (13.0 + 5.0 * (0.5 + 0.5 * sin(phase * 4.0))) : 13.0;
+        double glow_a = is_charging ? (0.45 + 0.25 * sin(phase * 4.0)) : 0.35;
+        cairo_set_source_rgba(cr, col_r, col_g, col_b, glow_a);
+        cairo_set_line_width(cr, glow_w);
         cairo_arc(cr, p_cx, p_cy, p_r, start_angle, cur_angle);
         cairo_stroke(cr);
+    }
+
+    // Charging animation tracer along gauge arc
+    if (is_charging && norm > 0.05) {
+        double tracer_cycle = fmod(phase * 0.7, 1.0);
+        double tracer_angle = start_angle + (total_sweep * norm) * tracer_cycle;
+        double tx = p_cx + p_r * cos(tracer_angle);
+        double ty = p_cy + p_r * sin(tracer_angle);
+
+        cairo_set_source_rgba(cr, 1.0, 1.0, 1.0, 0.95);
+        cairo_arc(cr, tx, ty, 3.2, 0, 2.0 * M_PI);
+        cairo_fill(cr);
+
+        cairo_set_source_rgba(cr, COLOR_CYAN_R, COLOR_CYAN_G, COLOR_CYAN_B, 0.6);
+        cairo_arc(cr, tx, ty, 7.0, 0, 2.0 * M_PI);
+        cairo_fill(cr);
     }
 
     // Needle
@@ -829,9 +850,18 @@ void cairo_draw_aerospace_power_core(cairo_t *cr, double x, double y, double w, 
     // Center percentage
     cairo_select_font_face(cr, "JetBrainsMono Nerd Font", CAIRO_FONT_SLANT_NORMAL, CAIRO_FONT_WEIGHT_BOLD);
     char bat_str[32];
-    snprintf(bat_str, sizeof(bat_str), "%.0f%%", bat_pct);
-    cairo_set_font_size(cr, 13.5);
-    cairo_set_source_rgba(cr, 1.0, 1.0, 1.0, 0.95);
+    if (is_charging) {
+        snprintf(bat_str, sizeof(bat_str), "⚡ %.0f%%", bat_pct);
+    } else {
+        snprintf(bat_str, sizeof(bat_str), "%.0f%%", bat_pct);
+    }
+    cairo_set_font_size(cr, is_charging ? 12.5 : 13.5);
+    if (is_charging) {
+        double text_pulse = 0.5 + 0.5 * sin(phase * 4.0);
+        cairo_set_source_rgba(cr, 0.8 + 0.2 * text_pulse, 1.0, 0.9 + 0.1 * text_pulse, 1.0);
+    } else {
+        cairo_set_source_rgba(cr, 1.0, 1.0, 1.0, 0.95);
+    }
     cairo_text_extents_t text;
     cairo_text_extents(cr, bat_str, &text);
     cairo_move_to(cr, p_cx - text.width / 2.0, p_cy + 14.0);
@@ -845,20 +875,45 @@ void cairo_draw_aerospace_power_core(cairo_t *cr, double x, double y, double w, 
     double cell_h = 16.0;
     double cell_x_start = x + 14.0;
     int active_cells = (int)round((bat_pct / 100.0) * cells);
+    if (active_cells > cells) active_cells = cells;
+
+    // Charging energy wave position
+    double wave_pos = fmod(phase * 3.5, (double)cells + 3.0) - 1.5;
 
     for (int i = 0; i < cells; i++) {
         double cx = cell_x_start + (double)i * (cell_w + gap);
         if (i < active_cells) {
+            double wave_dist = fabs((double)i - wave_pos);
+            double wave_glow = is_charging ? ((wave_dist < 1.6) ? (1.0 - wave_dist / 1.6) : 0.0) : 0.0;
+
             cairo_pattern_t *cpat = cairo_pattern_create_linear(cx, stack_y, cx, stack_y + cell_h);
-            cairo_pattern_add_color_stop_rgba(cpat, 0.0, COLOR_GREEN_R, COLOR_GREEN_G, COLOR_GREEN_B, 0.95);
-            cairo_pattern_add_color_stop_rgba(cpat, 1.0, COLOR_CYAN_R, COLOR_CYAN_G, COLOR_CYAN_B, 0.75);
+            double stop1_r = COLOR_GREEN_R + (1.0 - COLOR_GREEN_R) * wave_glow * 0.7;
+            double stop1_g = COLOR_GREEN_G;
+            double stop1_b = COLOR_GREEN_B + (1.0 - COLOR_GREEN_B) * wave_glow * 0.8;
+            cairo_pattern_add_color_stop_rgba(cpat, 0.0, stop1_r, stop1_g, stop1_b, 0.95);
+            cairo_pattern_add_color_stop_rgba(cpat, 1.0, COLOR_CYAN_R, COLOR_CYAN_G, COLOR_CYAN_B, 0.75 + 0.25 * wave_glow);
             cairo_set_source(cr, cpat);
             cairo_rectangle(cr, cx, stack_y, cell_w, cell_h);
             cairo_fill(cr);
             cairo_pattern_destroy(cpat);
 
-            cairo_set_source_rgba(cr, 1.0, 1.0, 1.0, 0.85);
-            cairo_set_line_width(cr, 0.8);
+            cairo_set_source_rgba(cr, 1.0, 1.0, 1.0, 0.85 + 0.15 * wave_glow);
+            cairo_set_line_width(cr, 0.8 + (is_charging ? 1.0 * wave_glow : 0.0));
+            cairo_rectangle(cr, cx, stack_y, cell_w, cell_h);
+            cairo_stroke(cr);
+        } else if (is_charging && i == active_cells) {
+            // Actively charging frontier cell: pulses with electric charging energy
+            double charge_pulse = 0.5 + 0.5 * sin(phase * 5.0);
+            cairo_pattern_t *cpat = cairo_pattern_create_linear(cx, stack_y, cx, stack_y + cell_h);
+            cairo_pattern_add_color_stop_rgba(cpat, 0.0, COLOR_CYAN_R, COLOR_CYAN_G, COLOR_CYAN_B, 0.2 + 0.45 * charge_pulse);
+            cairo_pattern_add_color_stop_rgba(cpat, 1.0, COLOR_GREEN_R, COLOR_GREEN_G, COLOR_GREEN_B, 0.1 + 0.3 * charge_pulse);
+            cairo_set_source(cr, cpat);
+            cairo_rectangle(cr, cx, stack_y, cell_w, cell_h);
+            cairo_fill(cr);
+            cairo_pattern_destroy(cpat);
+
+            cairo_set_source_rgba(cr, COLOR_CYAN_R, COLOR_CYAN_G, COLOR_CYAN_B, 0.5 + 0.5 * charge_pulse);
+            cairo_set_line_width(cr, 1.2);
             cairo_rectangle(cr, cx, stack_y, cell_w, cell_h);
             cairo_stroke(cr);
         } else {
@@ -866,11 +921,39 @@ void cairo_draw_aerospace_power_core(cairo_t *cr, double x, double y, double w, 
             cairo_rectangle(cr, cx, stack_y, cell_w, cell_h);
             cairo_fill(cr);
 
+            // Subtle ghost wave over uncharged cells when charging
+            if (is_charging) {
+                double wave_dist = fabs((double)i - wave_pos);
+                if (wave_dist < 1.4) {
+                    double ghost = (1.0 - wave_dist / 1.4) * 0.25;
+                    cairo_set_source_rgba(cr, COLOR_CYAN_R, COLOR_CYAN_G, COLOR_CYAN_B, ghost);
+                    cairo_rectangle(cr, cx, stack_y, cell_w, cell_h);
+                    cairo_fill(cr);
+                }
+            }
+
             cairo_set_source_rgba(cr, COLOR_BORDER_R, COLOR_BORDER_G, COLOR_BORDER_B, 0.25);
             cairo_set_line_width(cr, 0.8);
             cairo_rectangle(cr, cx, stack_y, cell_w, cell_h);
             cairo_stroke(cr);
         }
+    }
+
+    // Charging current flow rail above cell stack
+    if (is_charging) {
+        double rail_y = stack_y - 4.0;
+        cairo_set_source_rgba(cr, COLOR_CYAN_R, COLOR_CYAN_G, COLOR_CYAN_B, 0.3);
+        cairo_set_line_width(cr, 1.0);
+        cairo_move_to(cr, cell_x_start, rail_y);
+        cairo_line_to(cr, cell_x_start + (cell_w + gap) * cells - gap, rail_y);
+        cairo_stroke(cr);
+
+        // Moving charge particle on the rail
+        double particle_cycle = fmod(phase * 2.5, 1.0);
+        double px = cell_x_start + ((cell_w + gap) * cells - gap) * particle_cycle;
+        cairo_set_source_rgba(cr, 1.0, 1.0, 1.0, 0.9);
+        cairo_arc(cr, px, rail_y, 1.8, 0, 2 * M_PI);
+        cairo_fill(cr);
     }
 
     // 3. Lower: Avionics Bus Telemetry
@@ -881,17 +964,33 @@ void cairo_draw_aerospace_power_core(cairo_t *cr, double x, double y, double w, 
     cairo_show_text(cr, "BUS: 11.76 V [STABLE DC] // ~46.2 W");
 
     char grid_str[64];
-    snprintf(grid_str, sizeof(grid_str), "%s", ac_online ? "⚡ AC CHARGING // GRID ONLINE" : "DISCHARGING // LI-ION RESERVES");
-    cairo_set_source_rgba(cr, ac_online ? COLOR_GREEN_R : COLOR_CYAN_R,
-                              ac_online ? COLOR_GREEN_G : COLOR_CYAN_G,
-                              ac_online ? COLOR_GREEN_B : COLOR_CYAN_B, 0.95);
+    if (is_charging) {
+        snprintf(grid_str, sizeof(grid_str), "%s", (bat_pct >= 99.0) ? "⚡ AC GRID // CELLS SATURATED" : "⚡ AC CHARGING // CURRENT FLOW ACTIVE");
+        double glow_p = 0.7 + 0.3 * sin(phase * 4.0);
+        cairo_set_source_rgba(cr, COLOR_GREEN_R, COLOR_GREEN_G, COLOR_GREEN_B, glow_p);
+    } else {
+        snprintf(grid_str, sizeof(grid_str), "DISCHARGING // LI-ION RESERVES");
+        cairo_set_source_rgba(cr, COLOR_CYAN_R, COLOR_CYAN_G, COLOR_CYAN_B, 0.95);
+    }
     cairo_move_to(cr, x + 14.0, bus_y + 14.0);
     cairo_show_text(cr, grid_str);
 
+    // Profile string dynamic formatting
     cairo_set_font_size(cr, 8.0);
-    cairo_set_source_rgba(cr, COLOR_TEXT_MUTED_R, COLOR_TEXT_MUTED_G, COLOR_TEXT_MUTED_B, 0.8);
+    char prof_str[64];
+    const char *p = profile ? profile : "BALANCED";
+    if (strcasecmp(p, "performance") == 0) {
+        snprintf(prof_str, sizeof(prof_str), "PROFILE: WARP PERFORMANCE // MAX GOV");
+        cairo_set_source_rgba(cr, 1.0, 0.65, 0.0, 0.95);
+    } else if (strcasecmp(p, "power-saver") == 0 || strcasecmp(p, "powersave") == 0) {
+        snprintf(prof_str, sizeof(prof_str), "PROFILE: CRYO SAVER // LOW-DRAW");
+        cairo_set_source_rgba(cr, 0.0, 0.85, 1.0, 0.95);
+    } else {
+        snprintf(prof_str, sizeof(prof_str), "PROFILE: ORBITAL BALANCED // NOMINAL");
+        cairo_set_source_rgba(cr, COLOR_GREEN_R, COLOR_GREEN_G, COLOR_GREEN_B, 0.9);
+    }
     cairo_move_to(cr, x + 14.0, bus_y + 28.0);
-    cairo_show_text(cr, "PROFILE: BALANCED AVIONICS // 98% HEALTH");
+    cairo_show_text(cr, prof_str);
 
     cairo_restore(cr);
 }
@@ -901,6 +1000,8 @@ void cairo_draw_spacecraft_power_core(cairo_t *cr, double cx, double cy, double 
                                       const char *status, const char *profile,
                                       double phase) {
     cairo_save(cr);
+
+    gboolean is_charging = ac_online || (status && (strcasecmp(status, "Charging") == 0));
 
     // Outer Hexagonal Confinement Ring
     int sides = 6;
@@ -939,16 +1040,19 @@ void cairo_draw_spacecraft_power_core(cairo_t *cr, double cx, double cy, double 
     cairo_arc(cr, cx, cy, radius, start_angle, start_angle + sweep);
     cairo_stroke(cr);
 
-    // Glow arc
-    cairo_set_source_rgba(cr, col_r, col_g, col_b, 0.30);
-    cairo_set_line_width(cr, 12.0);
+    // Glow arc with charging pulse
+    double glow_w = is_charging ? (12.0 + 4.0 * (0.5 + 0.5 * sin(phase * 4.0))) : 12.0;
+    double glow_a = is_charging ? (0.45 + 0.25 * sin(phase * 4.0)) : 0.30;
+    cairo_set_source_rgba(cr, col_r, col_g, col_b, glow_a);
+    cairo_set_line_width(cr, glow_w);
     cairo_arc(cr, cx, cy, radius, start_angle, start_angle + sweep);
     cairo_stroke(cr);
 
     // Magnetic Confinement Counter-Rotating Plasma Core
     double inner_r = radius * 0.65;
     for (int i = 0; i < 4; i++) {
-        double sa = (double)i * (M_PI / 2.0) - phase * 0.7;
+        double rot_dir = is_charging ? (phase * 1.5) : (phase * 0.7);
+        double sa = (double)i * (M_PI / 2.0) - rot_dir;
         double ea = sa + (M_PI / 4.0);
         cairo_set_source_rgba(cr, COLOR_CYAN_R, COLOR_CYAN_G, COLOR_CYAN_B, 0.85);
         cairo_set_line_width(cr, 2.0);
@@ -957,7 +1061,8 @@ void cairo_draw_spacecraft_power_core(cairo_t *cr, double cx, double cy, double 
     }
 
     // Central Fusion Core Glow
-    double core_r = radius * 0.42 * (1.0 + 0.12 * sin(phase * 3.0));
+    double core_pulse = is_charging ? sin(phase * 5.0) : sin(phase * 3.0);
+    double core_r = radius * 0.42 * (1.0 + 0.15 * core_pulse);
     cairo_pattern_t *cpat = cairo_pattern_create_radial(cx, cy, 0, cx, cy, core_r);
     cairo_pattern_add_color_stop_rgba(cpat, 0.0, 1.0, 1.0, 1.0, 0.95);
     cairo_pattern_add_color_stop_rgba(cpat, 0.5, col_r, col_g, col_b, 0.8);
@@ -970,8 +1075,12 @@ void cairo_draw_spacecraft_power_core(cairo_t *cr, double cx, double cy, double 
     // Center Battery Readout
     cairo_select_font_face(cr, "JetBrainsMono Nerd Font", CAIRO_FONT_SLANT_NORMAL, CAIRO_FONT_WEIGHT_BOLD);
     char bat_str[32];
-    snprintf(bat_str, sizeof(bat_str), "%.0f%%", bat_pct);
-    cairo_set_font_size(cr, 14.0);
+    if (is_charging) {
+        snprintf(bat_str, sizeof(bat_str), "⚡ %.0f%%", bat_pct);
+    } else {
+        snprintf(bat_str, sizeof(bat_str), "%.0f%%", bat_pct);
+    }
+    cairo_set_font_size(cr, is_charging ? 13.0 : 14.0);
     cairo_set_source_rgba(cr, 1.0, 1.0, 1.0, 0.95);
     cairo_text_extents_t text;
     cairo_text_extents(cr, bat_str, &text);
@@ -980,11 +1089,15 @@ void cairo_draw_spacecraft_power_core(cairo_t *cr, double cx, double cy, double 
 
     // Status readout below
     char ac_str[64];
-    snprintf(ac_str, sizeof(ac_str), "%s", ac_online ? "⚡ PLASMA GRID ONLINE" : "INTERNAL POWER (DISCHARGE)");
+    if (is_charging) {
+        snprintf(ac_str, sizeof(ac_str), "%s", (bat_pct >= 99.0) ? "⚡ PLASMA SATURATED" : "⚡ PLASMA GRID ONLINE");
+        double p_glow = 0.7 + 0.3 * sin(phase * 4.0);
+        cairo_set_source_rgba(cr, COLOR_GREEN_R, COLOR_GREEN_G, COLOR_GREEN_B, p_glow);
+    } else {
+        snprintf(ac_str, sizeof(ac_str), "INTERNAL POWER (DISCHARGE)");
+        cairo_set_source_rgba(cr, COLOR_CYAN_R, COLOR_CYAN_G, COLOR_CYAN_B, 0.95);
+    }
     cairo_set_font_size(cr, 8.5);
-    cairo_set_source_rgba(cr, ac_online ? COLOR_GREEN_R : COLOR_CYAN_R,
-                              ac_online ? COLOR_GREEN_G : COLOR_CYAN_G,
-                              ac_online ? COLOR_GREEN_B : COLOR_CYAN_B, 0.95);
     cairo_text_extents(cr, ac_str, &text);
     cairo_move_to(cr, cx - text.width / 2.0, cy + radius + 22.0);
     cairo_show_text(cr, ac_str);

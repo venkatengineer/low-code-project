@@ -24,6 +24,14 @@ case "$ACTION" in
     saver|cryo|powersave|power-saver)
         set_profile "power-saver"
         ;;
+    toggle-performance|toggle-perf|toggle)
+        current=$(get_current)
+        if [[ "$current" == "performance" ]]; then
+            set_profile "balanced"
+        else
+            set_profile "performance"
+        fi
+        ;;
     cycle|next)
         current=$(get_current)
         if [[ "$current" == "performance" ]]; then
@@ -41,7 +49,7 @@ case "$ACTION" in
         get_current
         ;;
     *)
-        echo "Usage: solaris-power-mode [performance|balanced|saver|render|cycle|status]"
+        echo "Usage: solaris-power-mode [performance|balanced|saver|toggle-performance|cycle|render|status]"
         exit 1
         ;;
 esac

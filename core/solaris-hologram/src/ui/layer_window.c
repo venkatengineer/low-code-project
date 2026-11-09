@@ -3,6 +3,7 @@
 #include "render_orbits.h"
 #include "render_nodes.h"
 #include "render_hud.h"
+#include "orbital_core.h"
 #include <gdk/gdkkeysyms.h>
 #include <malloc.h>
 
@@ -39,13 +40,60 @@ static gboolean on_frame_tick(gpointer user_data) {
     orbital_system_tick(&app->sys, dt, w, h);
     particle_system_update(&app->ps, dt, (app->sys.active_workspace_idx > 0));
 
+    // External IPC mode change check
+    static double last_mode_check = 0.0;
+    double current_stamp = (double)now.tv_sec + ((double)now.tv_usec * 1e-6);
+    if (current_stamp - last_mode_check > 0.10) {
+        last_mode_check = current_stamp;
+        FILE *mfp = fopen("/tmp/solaris_core_mode", "r");
+        if (mfp) {
+            char mbuf[32];
+            if (fgets(mbuf, sizeof(mbuf), mfp)) {
+                if (strncmp(mbuf, "server", 6) == 0) {
+                    orbital_core_set_state(&app->sys.core, CORE_STATE_SERVER_CORE);
+                    layer_window_set_keyboard_active(app, FALSE);
+                } else if (strncmp(mbuf, "terminal", 8) == 0) {
+                    orbital_core_set_state(&app->sys.core, CORE_STATE_TERMINAL);
+                    layer_window_set_keyboard_active(app, TRUE);
+                } else if (strncmp(mbuf, "orbital", 7) == 0) {
+                    orbital_core_set_state(&app->sys.core, CORE_STATE_ORBITAL);
+                    layer_window_set_keyboard_active(app, FALSE);
+                } else if (strncmp(mbuf, "toggle", 6) == 0) {
+                    orbital_core_toggle_state(&app->sys.core);
+                    if (app->sys.core.target_state == CORE_STATE_TERMINAL) {
+                        layer_window_set_keyboard_active(app, TRUE);
+                    } else {
+                        layer_window_set_keyboard_active(app, FALSE);
+                    }
+                }
+            }
+            fclose(mfp);
+            unlink("/tmp/solaris_core_mode");
+        }
+    }
+
     // Update hover states
     if (app->mouse_in_window) {
+        int tab_idx = -1;
+        server_hotspot_t hspot = HOTSPOT_NONE;
+        int tbtn = -1;
+        double cx = app->is_command_center_mode ? (w * 0.55) : (w * 0.5);
+        double cy = app->is_command_center_mode ? (h * 0.50) : (h * 0.48);
+        if (orbital_core_hit_test(&app->sys.core, app->mouse_x, app->mouse_y, cx, cy, &tab_idx, &hspot, &tbtn)) {
+            app->sys.core.hovered_mode_tab = tab_idx;
+            app->sys.core.hovered_hotspot = hspot;
+            app->sys.core.hovered_term_btn = tbtn;
+        } else {
+            app->sys.core.hovered_mode_tab = -1;
+            app->sys.core.hovered_hotspot = HOTSPOT_NONE;
+            app->sys.core.hovered_term_btn = -1;
+        }
+
         uint64_t win_id;
         int ws_idx;
         gboolean create_btn, core;
         if (orbital_system_hit_test(&app->sys, app->mouse_x, app->mouse_y,
-                                    &win_id, &ws_idx, &create_btn, &core)) {
+                                     &win_id, &ws_idx, &create_btn, &core)) {
             app->sys.hovered_window_id = win_id;
             app->sys.hovered_workspace_idx = ws_idx;
             app->sys.hovered_create_btn = create_btn;
@@ -57,6 +105,9 @@ static gboolean on_frame_tick(gpointer user_data) {
             app->sys.hovered_core = FALSE;
         }
     } else {
+        app->sys.core.hovered_mode_tab = -1;
+        app->sys.core.hovered_hotspot = HOTSPOT_NONE;
+        app->sys.core.hovered_term_btn = -1;
         app->sys.hovered_window_id = 0;
         app->sys.hovered_workspace_idx = -1;
         app->sys.hovered_create_btn = FALSE;
@@ -226,20 +277,70 @@ static gboolean on_draw(GtkWidget *widget, cairo_t *cr, gpointer user_data) {
     // 4. Stardust & Sparks Particles
     particle_system_render(&app->ps, cr, &app->sys.camera, cx, cy, app->sys.is_connected);
 
-    // 5. Back-half of Orbital Rings (depth behind core)
-    render_orbital_rings_back(cr, &app->sys, cx, cy);
+    double t = app->sys.core.orbital_to_server_t;
+    double s = t * t * (3.0 - 2.0 * t); // smoothstep ease
+    double orb_alpha = 1.0 - s;
+    double serv_alpha = s;
+    double term_t = app->sys.core.server_to_terminal_t;
 
-    // 6. Central Glowing Core (Reactor, Astrolabes, Corona)
-    render_session_core(cr, &app->sys, cx, cy);
+    // Lateral Parallax Coordinates
+    double slide_dist = 420.0;
+    double cx_orbital = cx - (s * slide_dist);
+    double scale_orbital = 1.0 - (s * 0.12);
+    double cx_vessel = cx + ((1.0 - s) * slide_dist);
+    double scale_vessel = 0.88 + (s * 0.12);
 
-    // 7. Front-half of Orbital Rings (depth in front of core)
-    render_orbital_rings_front(cr, &app->sys, cx, cy);
+    // 5. Orbital State (Planet, Orbits, Workspaces - slides to the left during transition)
+    if (orb_alpha > 0.001) {
+        cairo_save(cr);
+        cairo_push_group(cr);
 
-    // 8. Depth-sorted Window Nodes (with tethers, glowing borders, badges)
-    render_application_nodes(cr, &app->sys, cx, cy);
+        // Apply lateral translation and scale
+        cairo_translate(cr, cx_orbital, cy);
+        cairo_scale(cr, scale_orbital, scale_orbital);
+        cairo_translate(cr, -cx, -cy);
 
-    // 9. Station Labels & Controls (+ Button, Station Badges)
-    render_station_labels_and_controls(cr, &app->sys, cx, cy);
+        // Back-half of Orbital Rings (depth behind core)
+        render_orbital_rings_back(cr, &app->sys, cx, cy);
+
+        // Central Glowing Core (Reactor, Astrolabes, Corona)
+        render_session_core(cr, &app->sys, cx, cy);
+
+        // Front-half of Orbital Rings (depth in front of core)
+        render_orbital_rings_front(cr, &app->sys, cx, cy);
+
+        // Depth-sorted Window Nodes (with tethers, glowing borders, badges)
+        render_application_nodes(cr, &app->sys, cx, cy);
+
+        // Station Labels & Controls (+ Button, Station Badges)
+        render_station_labels_and_controls(cr, &app->sys, cx, cy);
+
+        cairo_pop_group_to_source(cr);
+        cairo_paint_with_alpha(cr, orb_alpha);
+        cairo_restore(cr);
+
+        // Contextual Hint (fades out as user swipes)
+        if (t < 0.20) {
+            render_core_context_hint(cr, &app->sys.core, cx, cy, h);
+        }
+    }
+
+    // 6. 3D Remote Vessel State (Sweeps in from the right with depth and parallax)
+    if (serv_alpha > 0.001) {
+        double server_render_alpha = serv_alpha * (1.0 - (term_t * 0.70));
+        cairo_save(cr);
+        cairo_translate(cr, cx_vessel - cx, 0);
+        render_server_chassis(cr, &app->sys.core, &app->sys.camera, cx, cy, scale_vessel, server_render_alpha);
+        cairo_restore(cr);
+    }
+
+    // 7. Holographic Floating Terminal (Unfolds from server chassis)
+    if (term_t > 0.001) {
+        render_holographic_terminal(cr, &app->sys.core, &app->sys.camera, cx, cy, w, h);
+    }
+
+    // 8. Always-Visible Mode Switcher Tabs
+    render_core_mode_selector(cr, &app->sys.core, cx, w, h);
 
     // 10. Foreground HUD Overlays
     if (app->is_command_center_mode) {
@@ -261,10 +362,34 @@ static gboolean on_draw(GtkWidget *widget, cairo_t *cr, gpointer user_data) {
     return FALSE;
 }
 
+void layer_window_set_keyboard_active(hologram_app_t *app, gboolean active) {
+    if (app->is_command_center_mode) return;
+    for (int i = 0; i < app->view_count; i++) {
+        GtkWidget *win = app->views[i].window;
+        if (win) {
+            gtk_layer_set_keyboard_interactivity(GTK_WINDOW(win), active);
+        }
+    }
+}
+
 static gboolean on_button_press(GtkWidget *widget, GdkEventButton *event, gpointer user_data) {
     hologram_app_t *app = (hologram_app_t *)user_data;
     double mx = event->x;
     double my = event->y;
+    double w = gtk_widget_get_allocated_width(widget);
+    double h = gtk_widget_get_allocated_height(widget);
+    double cx = app->is_command_center_mode ? (w * 0.55) : (w * 0.5);
+    double cy = app->is_command_center_mode ? (h * 0.50) : (h * 0.48);
+
+    app->drag_start_x = mx;
+    app->drag_start_y = my;
+    app->drag_last_x = mx;
+    app->drag_last_y = my;
+    app->is_dragging_camera = TRUE;
+
+    app->pending_tab = -1;
+    app->pending_hotspot = HOTSPOT_NONE;
+    app->pending_term_btn = -1;
 
     if (app->is_command_center_mode) {
         if (command_center_handle_click(&app->cc, &app->sys, &app->ipc, mx, my)) {
@@ -272,47 +397,117 @@ static gboolean on_button_press(GtkWidget *widget, GdkEventButton *event, gpoint
         }
     }
 
-    uint64_t hit_win;
-    int hit_ws;
-    gboolean hit_create, hit_core;
-
-    if (orbital_system_hit_test(&app->sys, mx, my, &hit_win, &hit_ws, &hit_create, &hit_core)) {
-        if (hit_create) {
-            int next_idx = app->sys.workspace_count + 1;
-            niri_ipc_create_new_workspace(&app->ipc, next_idx);
-            return TRUE;
-        } else if (hit_win != 0) {
-            if (event->type == GDK_2BUTTON_PRESS) {
-                if (!app->is_command_center_mode) {
-                    layer_window_set_mode(app, TRUE);
-                }
-                app->cc.inspected_window_id = hit_win;
-            } else {
-                niri_ipc_focus_window(&app->ipc, hit_win);
-            }
-            return TRUE;
-        } else if (hit_ws != -1) {
-            niri_ipc_focus_workspace_idx(&app->ipc, hit_ws);
-            return TRUE;
-        }
-    }
-
     if (event->type == GDK_2BUTTON_PRESS) {
         camera3d_reset(&app->sys.camera);
         return TRUE;
-    } else if (event->button == 1 || event->button == 3) {
-        app->is_dragging_camera = TRUE;
-        app->drag_last_x = mx;
-        app->drag_last_y = my;
+    }
+
+    // Hit-test on press, but defer action until release if it's a stationary click!
+    // This ensures drag gestures take precedence if the user moves the mouse!
+    int hit_tab = -1;
+    server_hotspot_t hit_hotspot = HOTSPOT_NONE;
+    int hit_term_btn = -1;
+
+    if (orbital_core_hit_test(&app->sys.core, mx, my, cx, cy, &hit_tab, &hit_hotspot, &hit_term_btn)) {
+        app->pending_tab = hit_tab;
+        app->pending_hotspot = hit_hotspot;
+        app->pending_term_btn = hit_term_btn;
         return TRUE;
     }
 
-    return FALSE;
+    // Window Nodes & Workspace Orbit Hit Testing (Active in ORBITAL state)
+    if (app->sys.core.target_state == CORE_STATE_ORBITAL) {
+        uint64_t hit_win;
+        int hit_ws;
+        gboolean hit_create, hit_core;
+
+        if (orbital_system_hit_test(&app->sys, mx, my, &hit_win, &hit_ws, &hit_create, &hit_core)) {
+            if (hit_create) {
+                int next_idx = app->sys.workspace_count + 1;
+                niri_ipc_create_new_workspace(&app->ipc, next_idx);
+                return TRUE;
+            } else if (hit_win != 0) {
+                niri_ipc_focus_window(&app->ipc, hit_win);
+                return TRUE;
+            } else if (hit_ws != -1) {
+                niri_ipc_focus_workspace_idx(&app->ipc, hit_ws);
+                return TRUE;
+            }
+        }
+    }
+
+    return TRUE;
 }
 
 static gboolean on_button_release(GtkWidget *widget, GdkEventButton *event, gpointer user_data) {
     hologram_app_t *app = (hologram_app_t *)user_data;
     app->is_dragging_camera = FALSE;
+
+    double dx = event->x - app->drag_start_x;
+    double dy = event->y - app->drag_start_y;
+    double dist = sqrt(dx * dx + dy * dy);
+
+    // If mouse was released with less than 8px movement, process as a clean CLICK!
+    if (dist < 8.0) {
+        // Mode Selector Tab Click
+        if (app->pending_tab >= 0) {
+            core_state_t target_s = (core_state_t)app->pending_tab;
+            orbital_core_set_state(&app->sys.core, target_s);
+            if (target_s == CORE_STATE_TERMINAL) {
+                layer_window_set_keyboard_active(app, TRUE);
+            } else {
+                layer_window_set_keyboard_active(app, FALSE);
+            }
+            gtk_widget_queue_draw(widget);
+            return TRUE;
+        }
+
+        // Terminal Mode Actions
+        if (app->sys.core.target_state == CORE_STATE_TERMINAL) {
+            if (app->pending_term_btn == 0) {
+                // [ SSH ]
+                system("kitty -e ssh venkat-server@100.110.135.100 & disown");
+                return TRUE;
+            } else if (app->pending_term_btn == 1 || app->pending_term_btn == 2) {
+                // [ - MIN ] or [ ✕ CLOSE ]
+                orbital_core_set_state(&app->sys.core, CORE_STATE_SERVER_CORE);
+                layer_window_set_keyboard_active(app, FALSE);
+                gtk_widget_queue_draw(widget);
+                return TRUE;
+            } else if (app->pending_term_btn >= 10) {
+                const char *cmds[] = {"ssh", "ts", "fastfetch", "top", "df", "clear"};
+                int q_idx = app->pending_term_btn - 10;
+                if (q_idx >= 0 && q_idx < 6) {
+                    terminal_execute_command(&app->sys.core.terminal, cmds[q_idx], &app->sys.core.telemetry);
+                    gtk_widget_queue_draw(widget);
+                    return TRUE;
+                }
+            }
+            layer_window_set_keyboard_active(app, TRUE);
+            return TRUE;
+        }
+
+        // Spacecraft View Actions
+        if (app->sys.core.target_state == CORE_STATE_SERVER_CORE) {
+            if (app->pending_hotspot == HOTSPOT_CONNECT_BTN || app->pending_hotspot == HOTSPOT_CORE) {
+                // Authentic SSH launch
+                system("kitty -e ssh venkat-server@100.110.135.100 & disown");
+                orbital_core_set_state(&app->sys.core, CORE_STATE_TERMINAL);
+                layer_window_set_keyboard_active(app, TRUE);
+                gtk_widget_queue_draw(widget);
+                return TRUE;
+            } else if (app->pending_hotspot == HOTSPOT_TERMINAL_BTN) {
+                orbital_core_set_state(&app->sys.core, CORE_STATE_TERMINAL);
+                layer_window_set_keyboard_active(app, TRUE);
+                gtk_widget_queue_draw(widget);
+                return TRUE;
+            }
+        }
+    }
+
+    app->pending_tab = -1;
+    app->pending_hotspot = HOTSPOT_NONE;
+    app->pending_term_btn = -1;
     return FALSE;
 }
 
@@ -328,6 +523,48 @@ static gboolean on_motion_notify(GtkWidget *widget, GdkEventMotion *event, gpoin
         app->drag_last_x = event->x;
         app->drag_last_y = event->y;
 
+        double total_dx = event->x - app->drag_start_x;
+        double total_dy = event->y - app->drag_start_y;
+        double dist = sqrt(total_dx * total_dx + total_dy * total_dy);
+
+        // If mouse moved more than 8 pixels, this is a drag/swipe, NOT a stationary click
+        if (dist > 8.0) {
+            app->pending_tab = -1;
+            app->pending_hotspot = HOTSPOT_NONE;
+            app->pending_term_btn = -1;
+        }
+
+        // Horizontal Swipe Gesture Detection with Cooldown
+        struct timeval tv;
+        gettimeofday(&tv, NULL);
+        double now_s = (double)tv.tv_sec + ((double)tv.tv_usec * 1e-6);
+
+        if (fabs(total_dx) > 36.0 && fabs(total_dx) > 1.2 * fabs(total_dy)) {
+            if (now_s - app->last_swipe_time > 0.35) {
+                app->last_swipe_time = now_s;
+                if (total_dx > 0) {
+                    // Swipe Right: ORBITAL -> SERVER_CORE -> TERMINAL
+                    if (app->sys.core.target_state == CORE_STATE_ORBITAL) {
+                        orbital_core_set_state(&app->sys.core, CORE_STATE_SERVER_CORE);
+                    } else if (app->sys.core.target_state == CORE_STATE_SERVER_CORE) {
+                        orbital_core_set_state(&app->sys.core, CORE_STATE_TERMINAL);
+                        layer_window_set_keyboard_active(app, TRUE);
+                    }
+                } else {
+                    // Swipe Left: TERMINAL -> SERVER_CORE -> ORBITAL
+                    if (app->sys.core.target_state == CORE_STATE_TERMINAL) {
+                        orbital_core_set_state(&app->sys.core, CORE_STATE_SERVER_CORE);
+                        layer_window_set_keyboard_active(app, FALSE);
+                    } else if (app->sys.core.target_state == CORE_STATE_SERVER_CORE) {
+                        orbital_core_set_state(&app->sys.core, CORE_STATE_ORBITAL);
+                    }
+                }
+                app->drag_start_x = event->x;
+                app->drag_start_y = event->y;
+                gtk_widget_queue_draw(widget);
+            }
+        }
+
         app->sys.camera.target_yaw += dx * 0.007;
         app->sys.camera.target_pitch -= dy * 0.007;
     }
@@ -339,6 +576,9 @@ static gboolean on_leave_notify(GtkWidget *widget, GdkEventCrossing *event, gpoi
     hologram_app_t *app = (hologram_app_t *)user_data;
     app->mouse_in_window = FALSE;
     app->is_dragging_camera = FALSE;
+    app->pending_tab = -1;
+    app->pending_hotspot = HOTSPOT_NONE;
+    app->pending_term_btn = -1;
     return FALSE;
 }
 
@@ -349,6 +589,33 @@ static gboolean on_scroll(GtkWidget *widget, GdkEventScroll *event, gpointer use
     } else if (event->direction == GDK_SCROLL_DOWN) {
         app->sys.camera.target_distance += 45.0;
     } else if (event->direction == GDK_SCROLL_SMOOTH) {
+        // Two-finger horizontal swipe gesture with cooldown & deterministic direction
+        struct timeval tv;
+        gettimeofday(&tv, NULL);
+        double now_s = (double)tv.tv_sec + ((double)tv.tv_usec * 1e-6);
+
+        if (fabs(event->delta_x) > 0.18 && (now_s - app->last_swipe_time > 0.35)) {
+            app->last_swipe_time = now_s;
+            if (event->delta_x > 0) {
+                // Swipe Right: advance state (ORBITAL -> SERVER_CORE -> TERMINAL)
+                if (app->sys.core.target_state == CORE_STATE_ORBITAL) {
+                    orbital_core_set_state(&app->sys.core, CORE_STATE_SERVER_CORE);
+                } else if (app->sys.core.target_state == CORE_STATE_SERVER_CORE) {
+                    orbital_core_set_state(&app->sys.core, CORE_STATE_TERMINAL);
+                    layer_window_set_keyboard_active(app, TRUE);
+                }
+            } else {
+                // Swipe Left: reverse state (TERMINAL -> SERVER_CORE -> ORBITAL)
+                if (app->sys.core.target_state == CORE_STATE_TERMINAL) {
+                    orbital_core_set_state(&app->sys.core, CORE_STATE_SERVER_CORE);
+                    layer_window_set_keyboard_active(app, FALSE);
+                } else if (app->sys.core.target_state == CORE_STATE_SERVER_CORE) {
+                    orbital_core_set_state(&app->sys.core, CORE_STATE_ORBITAL);
+                }
+            }
+            gtk_widget_queue_draw(widget);
+            return TRUE;
+        }
         app->sys.camera.target_distance += event->delta_y * 35.0;
     }
     return TRUE;
@@ -356,6 +623,22 @@ static gboolean on_scroll(GtkWidget *widget, GdkEventScroll *event, gpointer use
 
 static gboolean on_key_press(GtkWidget *widget, GdkEventKey *event, gpointer user_data) {
     hologram_app_t *app = (hologram_app_t *)user_data;
+
+    // Interactive Holographic Terminal Keyboard Routing
+    if (app->sys.core.target_state == CORE_STATE_TERMINAL) {
+        if (event->keyval == GDK_KEY_Escape) {
+            orbital_core_set_state(&app->sys.core, CORE_STATE_SERVER_CORE);
+            layer_window_set_keyboard_active(app, FALSE);
+            gtk_widget_queue_draw(widget);
+            return TRUE;
+        }
+        terminal_handle_key(&app->sys.core.terminal, event->keyval, &app->sys.core.telemetry, &app->sys.core);
+        if (app->sys.core.target_state != CORE_STATE_TERMINAL) {
+            layer_window_set_keyboard_active(app, FALSE);
+        }
+        gtk_widget_queue_draw(widget);
+        return TRUE;
+    }
 
     if (app->is_command_center_mode) {
         return command_center_handle_key(&app->cc, &app->sys, &app->ipc, event->keyval);

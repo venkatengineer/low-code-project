@@ -7,8 +7,11 @@ core/solaris-hologram/bin/*
 !core/solaris-bg/bin/.gitkeep
 !core/solaris-hologram/bin/.gitkeep
 
-# Intermediate render frames
+# Intermediate render frames & large assets
 bootsplash/output/frames_*
+*.mp4
+*.blend*
+*.d
 
 # Python caches & virtual environments
 __pycache__/

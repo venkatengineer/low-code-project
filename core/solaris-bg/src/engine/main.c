@@ -29,13 +29,6 @@ typedef struct {
 
 static engine_app_t g_app;
 
-static void play_sound_async(const char *sound_path) {
-    if (!sound_path) return;
-    char cmd[512];
-    snprintf(cmd, sizeof(cmd), "solaris-play-sound \"%s\"", sound_path);
-    g_spawn_command_line_async(cmd, NULL);
-}
-
 static gboolean on_button_press(GtkWidget *widget, GdkEventButton *event, gpointer user_data) {
     (void)widget;
     (void)user_data;
@@ -93,19 +86,11 @@ static gboolean on_button_press(GtkWidget *widget, GdkEventButton *event, gpoint
                 }
             }
         } else {
-            // Clicked on battery core: cycle power profile
-            if (g_strcmp0(g_app.pwr.profile, "performance") == 0) {
-                g_spawn_command_line_async("powerprofilesctl set power-saver", NULL);
-                play_sound_async("cryo_saver");
-                g_spawn_command_line_async("notify-send -a 'Solaris Reactor' -i preferences-system-power -h string:x-canonical-private-synchronous:solaris-pwr '❄️ CRYO SAVER' 'Low-Draw Thermal Conservation Active'", NULL);
-            } else if (g_strcmp0(g_app.pwr.profile, "power-saver") == 0 || g_strcmp0(g_app.pwr.profile, "powersave") == 0) {
-                g_spawn_command_line_async("powerprofilesctl set balanced", NULL);
-                play_sound_async("nominal_balanced");
-                g_spawn_command_line_async("notify-send -a 'Solaris Reactor' -i preferences-system-power -h string:x-canonical-private-synchronous:solaris-pwr '🛸 ORBITAL BALANCED' 'Nominal Flight Vector & Equilibrium Active'", NULL);
+            // Clicked on battery core: toggle performance mode (or right-click to cycle)
+            if (event->button == 3) {
+                g_spawn_command_line_async("/home/venkatengineer/.local/bin/solaris-power-mode cycle", NULL);
             } else {
-                g_spawn_command_line_async("powerprofilesctl set performance", NULL);
-                play_sound_async("warp_overclock");
-                g_spawn_command_line_async("notify-send -a 'Solaris Reactor' -i preferences-system-power -h string:x-canonical-private-synchronous:solaris-pwr '⚡ WARP OVERCLOCK' 'Maximum Frequency & Performance Governor Active'", NULL);
+                g_spawn_command_line_async("/home/venkatengineer/.local/bin/solaris-power-mode toggle-performance", NULL);
             }
             return TRUE;
         }

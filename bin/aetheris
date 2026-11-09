@@ -4,9 +4,7 @@ set -e
 
 if [[ "$1" == "--kill" || "$1" == "--quit" || "$1" == "--stop" ]]; then
     pkill -f "aetheris/runtime/electron" 2>/dev/null || true
-    pkill -9 -f "/share/spotify/spotify" 2>/dev/null || true
-    pkill -9 -x spotify 2>/dev/null || true
-    echo "[Aetheris] Terminated Aetheris and background Spotify audio daemon."
+    echo "[Aetheris] Terminated Aetheris overlay."
     exit 0
 fi
 

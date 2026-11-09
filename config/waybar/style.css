@@ -44,6 +44,7 @@ tooltip label {
 #disk,
 #disk.data,
 #network,
+#custom-vpn,
 #pulseaudio,
 #battery,
 #tray,
@@ -69,6 +70,7 @@ tooltip label {
 #disk:hover,
 #disk.data:hover,
 #network:hover,
+#custom-vpn:hover,
 #pulseaudio:hover,
 #battery:hover,
 #custom-power:hover {
@@ -226,6 +228,16 @@ tooltip label {
     border-color: #ff2255;
 }
 
+#custom-vpn {
+    color: #00ff88;
+    border-color: rgba(0, 255, 136, 0.25);
+}
+
+#custom-vpn.disconnected {
+    color: #64748b;
+    border-color: rgba(100, 116, 139, 0.25);
+}
+
 #pulseaudio {
     color: #00f0ff;
     border-color: rgba(0, 240, 255, 0.25);
@@ -243,9 +255,34 @@ tooltip label {
 
 #battery.charging,
 #battery.plugged {
-    color: #00f0ff;
-    border-color: #00f0ff;
-    box-shadow: 0 0 10px rgba(0, 240, 255, 0.35);
+    color: #00ff88;
+    border-color: #00ff88;
+    animation-name: battery-charging-pulse;
+    animation-duration: 1.4s;
+    animation-timing-function: ease-in-out;
+    animation-iteration-count: infinite;
+    animation-direction: alternate;
+}
+
+@keyframes battery-charging-pulse {
+    0% {
+        color: #00ff88;
+        border-color: rgba(0, 255, 136, 0.4);
+        background: rgba(0, 255, 136, 0.08);
+        box-shadow: 0 0 6px rgba(0, 255, 136, 0.4), inset 0 0 4px rgba(0, 255, 136, 0.15);
+    }
+    50% {
+        color: #00f0ff;
+        border-color: #00f0ff;
+        background: rgba(0, 240, 255, 0.22);
+        box-shadow: 0 0 16px rgba(0, 240, 255, 0.8), inset 0 0 8px rgba(0, 240, 255, 0.35);
+    }
+    100% {
+        color: #ffffff;
+        border-color: #00ff88;
+        background: rgba(0, 255, 136, 0.32);
+        box-shadow: 0 0 22px rgba(0, 255, 136, 0.95), inset 0 0 12px rgba(0, 240, 255, 0.55);
+    }
 }
 
 #battery.warning:not(.charging) {

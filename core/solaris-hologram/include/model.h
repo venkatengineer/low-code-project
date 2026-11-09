@@ -3,6 +3,7 @@
 
 #include "common.h"
 #include "math3d.h"
+#include "orbital_core.h"
 
 struct window_info_s {
     uint64_t id;
@@ -99,6 +100,9 @@ struct orbital_system_s {
 
     camera3d_t camera;
     GtkIconTheme *icon_theme;
+
+    // Interactive 3D Server & Holographic Terminal Core
+    orbital_core_t core;
 };
 
 // Lifecycle & Init
