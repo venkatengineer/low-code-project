@@ -55,39 +55,6 @@ void render_application_nodes(cairo_t *cr, const orbital_system_t *sys, double c
 
         color_rgb_t sc_node = get_station_color(win->workspace_idx);
 
-        // 1. Draw Sleek Fiber-Optic Tether to Orbit Ring
-        const workspace_info_t *ws = NULL;
-        for (int w = 0; w < sys->workspace_count; w++) {
-            if (sys->workspaces[w].idx == win->workspace_idx) {
-                ws = &sys->workspaces[w];
-                break;
-            }
-        }
-        if (ws) {
-            double r = ws->current_radius;
-            double ang = win->orbit_angle;
-            vec3_t anchor_3d = vec3_create(
-                r * cos(ang),
-                ws->y_height + sin(ws->inclination) * r * sin(ang),
-                r * sin(ang)
-            );
-            vec2_t anchor_sp;
-            if (project_to_screen(anchor_3d, &sys->camera, cx, cy, &anchor_sp, NULL, NULL)) {
-                // Subtle laser tether
-                double tether_alpha = is_foc ? 0.80 : (is_hov ? 0.60 : 0.25);
-                cairo_set_source_rgba(cr, sc_node.r, sc_node.g, sc_node.b, tether_alpha);
-                cairo_set_line_width(cr, (is_foc ? 1.4 : 0.8) * sc);
-                cairo_move_to(cr, anchor_sp.x, anchor_sp.y);
-                cairo_line_to(cr, x, y);
-                cairo_stroke(cr);
-
-                // Tiny glowing anchor pip on the orbital ring
-                cairo_set_source_rgba(cr, sc_node.r, sc_node.g, sc_node.b, is_foc ? 1.0 : 0.7);
-                cairo_arc(cr, anchor_sp.x, anchor_sp.y, 2.0 * sc, 0, 2 * M_PI);
-                cairo_fill(cr);
-            }
-        }
-
         // Orb Dimensions
         double orb_r = 13.0 * sc;
         cairo_save(cr);

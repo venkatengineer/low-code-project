@@ -9,9 +9,8 @@ void render_hud_background_and_grid(cairo_t *cr, const orbital_system_t *sys, do
     cairo_save(cr);
     double aura_r = (w < h ? w : h) * 0.52;
     cairo_pattern_t *aura_pat = cairo_pattern_create_radial(cx, cy, 0, cx, cy, aura_r);
-    cairo_pattern_add_color_stop_rgba(aura_pat, 0.0, 0.0, 0.85, 1.0, 0.08);
-    cairo_pattern_add_color_stop_rgba(aura_pat, 0.35, 0.45, 0.15, 0.85, 0.045);
-    cairo_pattern_add_color_stop_rgba(aura_pat, 0.70, 0.0, 0.35, 0.65, 0.02);
+    cairo_pattern_add_color_stop_rgba(aura_pat, 0.0, 0.0, 0.85, 1.0, 0.06);
+    cairo_pattern_add_color_stop_rgba(aura_pat, 0.40, 0.0, 0.50, 0.70, 0.025);
     cairo_pattern_add_color_stop_rgba(aura_pat, 1.0, 0.0, 0.0, 0.0, 0.0);
     cairo_set_source(cr, aura_pat);
     cairo_arc(cr, cx, cy, aura_r, 0, 2 * M_PI);
@@ -19,72 +18,15 @@ void render_hud_background_and_grid(cairo_t *cr, const orbital_system_t *sys, do
     cairo_pattern_destroy(aura_pat);
     cairo_restore(cr);
 
-    // 2. 3D Volumetric Holographic Projector Emitter Base
-    cairo_save(cr);
-    const double EMITTER_Y = -60.0;
-    const int RAYS = 16;
-    double rot_emitter = sys->time_sec * 0.15;
-
-    // Upward Volumetric Holographic Light Columns (Batched single stroke)
-    cairo_set_source_rgba(cr, COLOR_CYAN_R, COLOR_CYAN_G, COLOR_CYAN_B, 0.14);
-    cairo_set_line_width(cr, 1.0);
-    for (int r = 0; r < RAYS; r++) {
-        double a = rot_emitter + (2.0 * M_PI * r) / (double)RAYS;
-        double rad_base = (r % 2 == 0) ? 90.0 : 180.0;
-        vec3_t p_bottom = vec3_create(rad_base * cos(a), EMITTER_Y, rad_base * sin(a));
-        vec3_t p_top = vec3_create((rad_base * 0.4) * cos(a + 0.3), EMITTER_Y + 140.0, (rad_base * 0.4) * sin(a + 0.3));
-
-        vec2_t s_b, s_t;
-        if (project_to_screen(p_bottom, &sys->camera, cx, cy, &s_b, NULL, NULL) &&
-            project_to_screen(p_top, &sys->camera, cx, cy, &s_t, NULL, NULL)) {
-            cairo_move_to(cr, s_b.x, s_b.y);
-            cairo_line_to(cr, s_t.x, s_t.y);
-        }
-    }
-    cairo_stroke(cr);
-
-    // 3D Perspective Plane Grid (Horizontal XZ ground plane at y = -60)
-    cairo_set_line_width(cr, 0.7);
-    cairo_set_source_rgba(cr, COLOR_TEAL_R, COLOR_TEAL_G, COLOR_TEAL_B, 0.10);
-
-    const int GRID_LINES = 13;
-    const double GRID_SPAN = 640.0;
-    const double GRID_STEP = GRID_SPAN / (GRID_LINES - 1);
-
-    for (int i = 0; i < GRID_LINES; i++) {
-        double offset = -GRID_SPAN * 0.5 + (i * GRID_STEP);
-        // Lines parallel to X
-        vec3_t p1_x = vec3_create(-GRID_SPAN * 0.5, EMITTER_Y, offset);
-        vec3_t p2_x = vec3_create(GRID_SPAN * 0.5, EMITTER_Y, offset);
-        vec2_t s1_x, s2_x;
-        if (project_to_screen(p1_x, &sys->camera, cx, cy, &s1_x, NULL, NULL) &&
-            project_to_screen(p2_x, &sys->camera, cx, cy, &s2_x, NULL, NULL)) {
-            cairo_move_to(cr, s1_x.x, s1_x.y);
-            cairo_line_to(cr, s2_x.x, s2_x.y);
-        }
-
-        // Lines parallel to Z
-        vec3_t p1_z = vec3_create(offset, EMITTER_Y, -GRID_SPAN * 0.5);
-        vec3_t p2_z = vec3_create(offset, EMITTER_Y, GRID_SPAN * 0.5);
-        vec2_t s1_z, s2_z;
-        if (project_to_screen(p1_z, &sys->camera, cx, cy, &s1_z, NULL, NULL) &&
-            project_to_screen(p2_z, &sys->camera, cx, cy, &s2_z, NULL, NULL)) {
-            cairo_move_to(cr, s1_z.x, s1_z.y);
-            cairo_line_to(cr, s2_z.x, s2_z.y);
-        }
-    }
-    cairo_stroke(cr);
-    cairo_restore(cr);
-
-    // 3. Minimal Sweeping Scanline
+    // 2. Minimal Subtle Sweeping Scanline
     cairo_save(cr);
     double scan_y = h * sys->scanline_phase;
-    cairo_pattern_t *scan_pat = cairo_pattern_create_linear(0, scan_y - 24.0, 0, scan_y + 24.0);
+    cairo_pattern_t *scan_pat = cairo_pattern_create_linear(0, scan_y - 20.0, 0, scan_y + 20.0);
     cairo_pattern_add_color_stop_rgba(scan_pat, 0.0, COLOR_CYAN_R, COLOR_CYAN_G, COLOR_CYAN_B, 0.0);
-    cairo_pattern_add_color_stop_rgba(scan_pat, 0.5, COLOR_CYAN_R, COLOR_CYAN_G, COLOR_CYAN_B, 0.06);
+    cairo_pattern_add_color_stop_rgba(scan_pat, 0.5, COLOR_CYAN_R, COLOR_CYAN_G, COLOR_CYAN_B, 0.04);
     cairo_pattern_add_color_stop_rgba(scan_pat, 1.0, COLOR_CYAN_R, COLOR_CYAN_G, COLOR_CYAN_B, 0.0);
     cairo_set_source(cr, scan_pat);
-    cairo_rectangle(cr, 0, scan_y - 24.0, w, 48.0);
+    cairo_rectangle(cr, 0, scan_y - 20.0, w, 40.0);
     cairo_fill(cr);
     cairo_pattern_destroy(scan_pat);
     cairo_restore(cr);

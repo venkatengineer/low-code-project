@@ -23,8 +23,6 @@ export class OrbitalPlanet {
     this.initPlanet();
     this.initOrbitalRings();
     this.initStationNodes();
-    this.initRadarGrid();
-    this.initRadarSweep();
   }
 
   initPlanet() {
@@ -218,76 +216,6 @@ export class OrbitalPlanet {
     return sprite;
   }
 
-  initRadarGrid() {
-    this.gridGroup = new THREE.Group();
-    this.gridGroup.position.y = -2.5;
-    this.group.add(this.gridGroup);
-
-    // Concentric polar range rings on XZ plane
-    const rings = [1.6, 3.2, 4.8, 6.2];
-    rings.forEach((r, idx) => {
-      const segs = 96;
-      const pts = [];
-      for (let i = 0; i <= segs; i++) {
-        const th = (i / segs) * Math.PI * 2;
-        pts.push(new THREE.Vector3(Math.cos(th) * r, 0, Math.sin(th) * r));
-      }
-      const geom = new THREE.BufferGeometry().setFromPoints(pts);
-      const mat = new THREE.LineBasicMaterial({
-        color: 0x00ff66,
-        transparent: true,
-        opacity: idx === rings.length - 1 ? 0.30 : 0.12
-      });
-      const ringLine = new THREE.Line(geom, mat);
-      this.gridGroup.add(ringLine);
-    });
-
-    // Crosshairs & Polar spokes
-    const spokeMat = new THREE.LineBasicMaterial({
-      color: 0x00ff66,
-      transparent: true,
-      opacity: 0.10
-    });
-    const maxR = 6.2;
-    for (let a = 0; a < Math.PI * 2; a += Math.PI / 4) {
-      const pts = [
-        new THREE.Vector3(0, 0, 0),
-        new THREE.Vector3(Math.cos(a) * maxR, 0, Math.sin(a) * maxR)
-      ];
-      const geom = new THREE.BufferGeometry().setFromPoints(pts);
-      this.gridGroup.add(new THREE.Line(geom, spokeMat));
-    }
-  }
-
-  initRadarSweep() {
-    const sweepGeom = new THREE.CircleGeometry(6.2, 48, 0, 0.40);
-    const sweepMat = new THREE.MeshBasicMaterial({
-      color: 0x00ff66,
-      transparent: true,
-      opacity: 0.16,
-      side: THREE.DoubleSide
-    });
-    this.sweepMesh = new THREE.Mesh(sweepGeom, sweepMat);
-    this.sweepMesh.rotation.x = Math.PI / 2;
-    this.sweepMesh.position.y = -2.48;
-    this.group.add(this.sweepMesh);
-
-    // Leading edge beam ray
-    const rayPts = [
-      new THREE.Vector3(0, -2.48, 0),
-      new THREE.Vector3(6.2, -2.48, 0)
-    ];
-    const rayGeom = new THREE.BufferGeometry().setFromPoints(rayPts);
-    const rayMat = new THREE.LineBasicMaterial({
-      color: 0x00ff66,
-      transparent: true,
-      opacity: 0.75,
-      linewidth: 1.5
-    });
-    this.sweepRay = new THREE.Line(rayGeom, rayMat);
-    this.group.add(this.sweepRay);
-  }
-
   setActiveStation(stationId) {
     this.stations.forEach(st => {
       st.active = (st.id === stationId);
@@ -355,13 +283,6 @@ export class OrbitalPlanet {
         halo.scale.set(s, s, s);
       }
     });
-
-    // 5. Radar sweep beam rotation
-    this.radarAngle += 0.030;
-    if (this.radarAngle > Math.PI * 2) this.radarAngle -= Math.PI * 2;
-
-    this.sweepMesh.rotation.z = -this.radarAngle;
-    this.sweepRay.rotation.y = this.radarAngle;
   }
 
   dispose() {

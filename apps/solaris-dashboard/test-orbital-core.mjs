@@ -52,8 +52,8 @@ async function runTests() {
     assert(st4.active === true, 'setActiveStation sets target station active');
 
     // Test tick simulation
-    planetInstance.update(0.016);
-    assert(planetInstance.radarAngle > 0, 'Radar sweep rotates continuously with delta time');
+    planetInstance.update(0.016, 0.016);
+    assert(planetInstance.planetWire.rotation.y > 0, 'Planet rotates continuously with delta time');
 
     // Test disposal cleanup
     planetInstance.dispose();
