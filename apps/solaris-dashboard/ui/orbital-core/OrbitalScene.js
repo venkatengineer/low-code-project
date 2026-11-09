@@ -133,6 +133,18 @@ export class OrbitalScene {
     window.addEventListener('pointercancel', () => {
       this.isDragging = false;
     });
+
+    // Smooth interactive zoom with wheel
+    this.canvas.addEventListener('wheel', (e) => {
+      e.preventDefault();
+      const zoomDelta = e.deltaY * 0.005;
+      const newZ = Math.max(6.0, Math.min(18.0, this.camera.position.z + zoomDelta));
+      this.camera.position.z = newZ;
+    }, { passive: false });
+  }
+
+  render() {
+    this.update(0.016);
   }
 
   update(delta) {

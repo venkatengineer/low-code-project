@@ -727,67 +727,93 @@ body.cockpit-viewport {
   flex-direction: column;
   justify-content: space-between;
   align-items: center;
-  padding: 6px 0;
+  padding: 10px 14px;
 }
 
-/* Accessible Mode Switcher Bar */
-.core-mode-switcher-bar {
-  display: flex;
-  gap: 6px;
-  background: rgba(4, 10, 18, 0.9);
-  border: 1px solid rgba(0, 240, 255, 0.35);
-  border-radius: 20px;
-  padding: 3px 8px;
-  pointer-events: auto;
-  backdrop-filter: blur(8px);
-  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.7), 0 0 12px rgba(0, 240, 255, 0.15);
-  z-index: 20;
-}
-
-.core-mode-pill-btn {
-  background: transparent;
-  border: 1px solid transparent;
-  color: var(--color-text-dim);
-  font-family: var(--font-mono);
-  font-size: 10px;
-  font-weight: 700;
-  padding: 4px 10px;
-  border-radius: 14px;
-  cursor: pointer;
-  transition: all 0.2s ease;
-  display: flex;
-  align-items: center;
-  gap: 6px;
-  outline: none;
-}
-
-.core-mode-pill-btn:hover {
-  color: #00f0ff;
-  border-color: rgba(0, 240, 255, 0.4);
-  background: rgba(0, 240, 255, 0.08);
-}
-
-.core-mode-pill-btn.active {
-  background: rgba(0, 240, 255, 0.18);
-  color: #00f0ff;
-  border-color: #00f0ff;
-  box-shadow: 0 0 10px rgba(0, 240, 255, 0.3);
-}
-
-.mode-glyph {
-  font-size: 11px;
-}
-
-/* Contextual Hint */
-.orbital-context-hint {
+/* Minimal Sci-Fi Status Badge */
+.orbital-status-badge {
   display: flex;
   align-items: center;
   gap: 8px;
-  background: rgba(4, 14, 22, 0.82);
-  border: 1px solid rgba(0, 255, 102, 0.35);
+  background: rgba(4, 12, 20, 0.85);
+  border: 1px solid rgba(0, 240, 255, 0.35);
   border-radius: 4px;
-  padding: 4px 14px;
+  padding: 4px 12px;
+  backdrop-filter: blur(8px);
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.8), 0 0 10px rgba(0, 240, 255, 0.15);
   pointer-events: auto;
+}
+
+.status-pulse-dot {
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: #00ff66;
+  box-shadow: 0 0 8px #00ff66;
+  animation: pulseNeon 1.8s infinite ease-in-out;
+}
+
+@keyframes pulseNeon {
+  0%, 100% { opacity: 0.4; transform: scale(0.9); }
+  50% { opacity: 1; transform: scale(1.15); }
+}
+
+.status-title {
+  font-family: var(--font-hud);
+  font-size: 9.5px;
+  font-weight: 700;
+  color: #00f0ff;
+  letter-spacing: 0.8px;
+}
+
+.status-sep {
+  color: var(--color-text-dim);
+  font-size: 10px;
+}
+
+.status-fps {
+  font-family: var(--font-mono);
+  font-size: 9.5px;
+  font-weight: 700;
+  color: #00ff66;
+  letter-spacing: 0.5px;
+}
+
+/* Bottom Astronomical Coordinates */
+.orbital-coords-hud {
+  display: flex;
+  gap: 16px;
+  background: rgba(4, 12, 20, 0.82);
+  border: 1px solid rgba(0, 255, 102, 0.25);
+  border-radius: 4px;
+  padding: 6px 14px;
+  backdrop-filter: blur(8px);
+  pointer-events: auto;
+}
+
+.coord-block {
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+}
+
+.coord-label {
+  font-family: var(--font-mono);
+  font-size: 7.5px;
+  color: var(--color-text-dim);
+  letter-spacing: 0.6px;
+}
+
+.coord-val {
+  font-family: var(--font-mono);
+  font-size: 10px;
+  font-weight: 700;
+  color: #00f0ff;
+}
+
+.coord-val.text-green {
+  color: #00ff66;
+}
   font-family: var(--font-mono);
   font-size: 9.5px;
   font-weight: 600;

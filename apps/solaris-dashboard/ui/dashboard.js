@@ -3,9 +3,15 @@
 // 60FPS Holographic 3D Canvas Rendering · Real Linux Telemetry Stream
 // ==============================================================================
 import { OrbitalCore } from './orbital-core/OrbitalCore.js';
+import { audioManager } from './audio.js';
 
 (function() {
   'use strict';
+
+  // Play startup theme after brief pause
+  setTimeout(() => {
+    audioManager.playTheme();
+  }, 450);
 
   // Initialize Interactive 3D Orbital Core Subsystem
   const orbitalCoreViewport = document.getElementById('orbital-core-viewport') || document.getElementById('radar-3d-interactive');
@@ -719,10 +725,15 @@ import { OrbitalCore } from './orbital-core/OrbitalCore.js';
   // ---------------------------------------------------------------------------
   // 9. ACTION EVENT BINDINGS
   // ---------------------------------------------------------------------------
-  function bindAction(btnId, action, payload = {}) {
+  function bindAction(btnId, action, payload = {}, soundType = 'panels') {
     const el = document.getElementById(btnId);
     if (el) {
       el.addEventListener('click', () => {
+        if (soundType === 'folder') audioManager.playFolder();
+        else if (soundType === 'expand') audioManager.playExpand();
+        else if (soundType === 'granted') audioManager.playGranted();
+        else audioManager.playPanels();
+
         if (window.solarisAPI) {
           window.solarisAPI.performAction(action, payload);
         }
@@ -731,29 +742,38 @@ import { OrbitalCore } from './orbital-core/OrbitalCore.js';
   }
 
   // Top Dock Launcher Buttons
-  bindAction('dock-btn-files', 'launch-app', { exec: 'kitty -e yazi || nautilus || thunar' });
-  bindAction('dock-btn-terminal', 'launch-app', { exec: 'kitty' });
-  bindAction('dock-btn-browser', 'launch-app', { exec: 'vivaldi-stable || firefox || chromium' });
-  bindAction('dock-btn-settings', 'launch-app', { exec: 'fuzzel' });
+  bindAction('dock-btn-files', 'launch-app', { exec: 'kitty -e yazi || nautilus || thunar' }, 'folder');
+  bindAction('dock-btn-terminal', 'launch-app', { exec: 'kitty' }, 'panels');
+  bindAction('dock-btn-browser', 'launch-app', { exec: 'vivaldi-stable || firefox || chromium' }, 'expand');
+  bindAction('dock-btn-settings', 'launch-app', { exec: 'fuzzel' }, 'expand');
 
   // Quick Access Buttons
-  bindAction('qa-btn-lock', 'lock-screen');
-  bindAction('qa-btn-reboot', 'system-reboot');
-  bindAction('qa-btn-shutdown', 'system-shutdown');
-  bindAction('qa-btn-logout', 'system-logout');
-  bindAction('qa-btn-notes', 'launch-app', { exec: 'kitty -e nano ~/notes.txt' });
-  bindAction('qa-btn-calc', 'launch-app', { exec: 'fuzzel || kitty' });
-  bindAction('qa-btn-screenshot', 'take-screenshot');
-  bindAction('qa-btn-files', 'launch-app', { exec: 'nautilus || thunar || kitty -e yazi' });
+  bindAction('qa-btn-lock', 'lock-screen', {}, 'granted');
+  bindAction('qa-btn-reboot', 'system-reboot', {}, 'alarm');
+  bindAction('qa-btn-shutdown', 'system-shutdown', {}, 'alarm');
+  bindAction('qa-btn-logout', 'system-logout', {}, 'denied');
+  bindAction('qa-btn-notes', 'launch-app', { exec: 'kitty -e nano ~/notes.txt' }, 'panels');
+  bindAction('qa-btn-calc', 'launch-app', { exec: 'fuzzel || kitty' }, 'panels');
+  bindAction('qa-btn-screenshot', 'take-screenshot', {}, 'granted');
+  bindAction('qa-btn-files', 'launch-app', { exec: 'nautilus || thunar || kitty -e yazi' }, 'folder');
 
   // Top Rail Buttons
-  bindAction('btn-top-power', 'lock-screen');
-  bindAction('btn-top-audio', 'toggle-mute');
+  bindAction('btn-top-power', 'lock-screen', {}, 'granted');
+
+  const audioToggleBtn = document.getElementById('btn-top-audio');
+  if (audioToggleBtn) {
+    audioToggleBtn.addEventListener('click', () => {
+      const isMuted = audioManager.toggleMute();
+      audioToggleBtn.style.opacity = isMuted ? '0.35' : '1.0';
+      if (!isMuted) audioManager.playScan();
+    });
+  }
 
   // Power Profile Buttons
   document.querySelectorAll('.prof-pill-btn').forEach(btn => {
     btn.addEventListener('click', () => {
       const prof = btn.dataset.profile;
+      audioManager.playGranted();
       if (window.solarisAPI && prof) {
         window.solarisAPI.performAction('set-power-profile', { profile: prof });
         document.querySelectorAll('.prof-pill-btn').forEach(b => b.classList.remove('active'));
@@ -762,11 +782,19 @@ import { OrbitalCore } from './orbital-core/OrbitalCore.js';
     });
   });
 
+  // Global key typing feedback
+  window.addEventListener('keydown', (e) => {
+    if (e.key.length === 1 || e.key === 'Backspace' || e.key === 'Enter') {
+      audioManager.playKey();
+    }
+  });
+
   // Speedometer Rev Interactivity
   const cpuSpeedo = document.getElementById('mod-system-engine');
   if (cpuSpeedo) {
     cpuSpeedo.style.cursor = 'pointer';
     cpuSpeedo.addEventListener('click', () => {
+      audioManager.playExpand();
       const arcEl = document.getElementById('svg-cpu-arc');
       if (arcEl) {
         arcEl.style.transition = 'stroke-dashoffset 0.4s ease';

@@ -320,6 +320,7 @@ function renderMatrixView() {
 // ==============================================================================
 function navigateTo(targetPath) {
   if (targetPath === state.currentPath) return;
+  if (typeof sfx !== 'undefined') sfx.playFolder();
   // Trim forward history if we navigated anew
   if (state.historyIndex < state.history.length - 1) {
     state.history = state.history.slice(0, state.historyIndex + 1);
@@ -331,6 +332,7 @@ function navigateTo(targetPath) {
 
 function goBack() {
   if (state.historyIndex > 0) {
+    if (typeof sfx !== 'undefined') sfx.playPanels();
     state.historyIndex--;
     loadDirectory(state.history[state.historyIndex]);
   }
@@ -338,6 +340,7 @@ function goBack() {
 
 function goForward() {
   if (state.historyIndex < state.history.length - 1) {
+    if (typeof sfx !== 'undefined') sfx.playPanels();
     state.historyIndex++;
     loadDirectory(state.history[state.historyIndex]);
   }
@@ -346,6 +349,7 @@ function goForward() {
 function goUp() {
   const parent = path.dirname(state.currentPath);
   if (parent && parent !== state.currentPath) {
+    if (typeof sfx !== 'undefined') sfx.playExpand();
     navigateTo(parent);
   }
 }
@@ -357,6 +361,7 @@ function updateNavButtons() {
 
 function selectItem(item) {
   state.selectedItem = item;
+  if (typeof sfx !== 'undefined') sfx.playScan();
   updateInspector(item);
   renderMatrixView();
   el.statSelectedInfo.textContent = item ? `1 OBJECT [ ${item.sizeFormatted} ]` : '0 SELECTED';
@@ -365,8 +370,10 @@ function selectItem(item) {
 function openItem(item) {
   if (!item) return;
   if (item.isDir) {
+    if (typeof sfx !== 'undefined') sfx.playFolder();
     navigateTo(item.fullPath);
   } else {
+    if (typeof sfx !== 'undefined') sfx.playGranted();
     ipcRenderer.invoke('fs:open', item.fullPath);
   }
 }
@@ -559,6 +566,7 @@ function setupEventListeners() {
 
   // View Mode Toggles
   el.btnGridView.addEventListener('click', () => {
+    if (typeof sfx !== 'undefined') sfx.playExpand();
     state.viewMode = 'grid';
     el.btnGridView.classList.add('active');
     el.btnListView.classList.remove('active');
@@ -566,6 +574,7 @@ function setupEventListeners() {
   });
 
   el.btnListView.addEventListener('click', () => {
+    if (typeof sfx !== 'undefined') sfx.playExpand();
     state.viewMode = 'list';
     el.btnListView.classList.add('active');
     el.btnGridView.classList.remove('active');
@@ -574,6 +583,7 @@ function setupEventListeners() {
 
   // Toggle Hidden Files
   el.btnToggleHidden.addEventListener('click', () => {
+    if (typeof sfx !== 'undefined') sfx.playPanels();
     state.showHidden = !state.showHidden;
     el.btnToggleHidden.classList.toggle('active', state.showHidden);
     renderMatrixView();
@@ -581,34 +591,41 @@ function setupEventListeners() {
 
   // Search Filter
   el.searchArchiveInput.addEventListener('input', (e) => {
+    if (typeof sfx !== 'undefined') sfx.playKey();
     state.searchQuery = e.target.value;
     renderMatrixView();
   });
 
   // Sort Selector
   el.sortSelect.addEventListener('change', (e) => {
+    if (typeof sfx !== 'undefined') sfx.playPanels();
     state.sortBy = e.target.value;
     renderMatrixView();
   });
 
   // Quick Operations
   el.btnNewFolder.addEventListener('click', async () => {
+    if (typeof sfx !== 'undefined') sfx.playPanels();
     const folderName = prompt('CREATE NEW DATA MODULE // ENTER FOLDER NAME:');
     if (folderName) {
       await ipcRenderer.invoke('fs:create-folder', { dirPath: state.currentPath, folderName });
+      if (typeof sfx !== 'undefined') sfx.playGranted();
       loadDirectory(state.currentPath);
     }
   });
 
   el.btnNewFile.addEventListener('click', async () => {
+    if (typeof sfx !== 'undefined') sfx.playPanels();
     const fileName = prompt('CREATE NEW DATA OBJECT // ENTER FILE NAME:');
     if (fileName) {
       await ipcRenderer.invoke('fs:create-file', { dirPath: state.currentPath, fileName });
+      if (typeof sfx !== 'undefined') sfx.playGranted();
       loadDirectory(state.currentPath);
     }
   });
 
   el.btnOpenTerminal.addEventListener('click', () => {
+    if (typeof sfx !== 'undefined') sfx.playPanels();
     ipcRenderer.invoke('fs:open-terminal', state.currentPath);
   });
 
@@ -618,6 +635,7 @@ function setupEventListeners() {
   });
 
   el.btnInspectorTerminal.addEventListener('click', () => {
+    if (typeof sfx !== 'undefined') sfx.playPanels();
     const p = state.selectedItem?.isDir ? state.selectedItem.fullPath : state.currentPath;
     ipcRenderer.invoke('fs:open-terminal', p);
   });
@@ -642,6 +660,7 @@ function setupEventListeners() {
           const newName = prompt(`RENAME ${item.name} TO:`, item.name);
           if (newName && newName !== item.name) {
             await ipcRenderer.invoke('fs:rename', { oldPath: item.fullPath, newName });
+            if (typeof sfx !== 'undefined') sfx.playGranted();
             loadDirectory(state.currentPath);
           }
           break;
@@ -649,6 +668,7 @@ function setupEventListeners() {
         case 'delete': {
           if (confirm(`PURGE DATA OBJECT: ${item.name}? THIS CANNOT BE UNDONE.`)) {
             await ipcRenderer.invoke('fs:delete', item.fullPath);
+            if (typeof sfx !== 'undefined') sfx.playDenied();
             loadDirectory(state.currentPath);
           }
           break;
@@ -661,6 +681,9 @@ function setupEventListeners() {
   // Global Clicks & Shortcuts
   document.addEventListener('click', hideContextMenu);
   document.addEventListener('keydown', (e) => {
+    if (e.target.tagName !== 'INPUT') {
+      if (typeof sfx !== 'undefined' && e.key.length === 1) sfx.playKey();
+    }
     if (e.key === 'Escape') hideContextMenu();
     if (e.ctrlKey && e.key === 'f') {
       e.preventDefault();
@@ -691,6 +714,11 @@ function setupEventListeners() {
 // INITIALIZATION
 // ==============================================================================
 window.addEventListener('DOMContentLoaded', () => {
+  setupEventListeners();
+  loadDirectory(state.currentPath);
+  setTimeout(() => {
+    if (typeof sfx !== 'undefined') sfx.playTheme();
+  }, 400);
   setupEventListeners();
   loadDirectory(state.currentPath);
   renderHoloCore();

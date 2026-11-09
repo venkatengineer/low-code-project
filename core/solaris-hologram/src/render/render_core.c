@@ -4,9 +4,9 @@
 static void draw_3d_wireframe_circle(cairo_t *cr, const camera3d_t *cam, double cx, double cy,
                                      double radius, double pitch, double yaw, double roll,
                                      double r, double g, double b, double alpha, double line_width) {
-    const int STEPS = 32;
-    vec2_t pts[32];
-    gboolean valid[32];
+    const int STEPS = 96;
+    vec2_t pts[96];
+    gboolean valid[96];
 
     for (int i = 0; i < STEPS; i++) {
         double angle = (2.0 * M_PI * i) / STEPS;
@@ -135,25 +135,30 @@ void render_session_core(cairo_t *cr, const orbital_system_t *sys, double cx, do
 
     // 2. Rotating 3D Gyroscopic Gimbal Wireframes & Geodesic Shield
     if (conn) {
-        // 3D Geodesic Icosahedron Energy Cage (Cosmic Violet / Cyan)
-        draw_3d_geodesic_shield(cr, &sys->camera, cx, cy, 62.0,
+        // Outer 3D Geodesic Icosahedron Energy Cage (Cosmic Violet / Electric Cyan)
+        draw_3d_geodesic_shield(cr, &sys->camera, cx, cy, 64.0,
                                 sys->core_rot_pitch * 0.8, sys->core_rot_yaw * 0.6, sys->core_rot_yaw * -0.4,
-                                0.78, 0.38, 0.98, 0.45, scale);
+                                0.0, 0.94, 1.0, 0.60, scale);
+
+        // Nested Inner 3D Geodesic Core (Quantum Emerald)
+        draw_3d_geodesic_shield(cr, &sys->camera, cx, cy, 48.0,
+                                sys->core_rot_pitch * -0.7, sys->core_rot_yaw * -0.8, sys->core_rot_yaw * 0.5,
+                                0.0, 1.0, 0.40, 0.45, scale);
 
         // Ring 1 (Equatorial Gyro - Electric Cyan)
         draw_3d_wireframe_circle(cr, &sys->camera, cx, cy, 38.0,
                                  sys->core_rot_pitch, sys->core_rot_yaw, 0.0,
-                                 0.0, 0.94, 1.0, 0.85, 1.5 * scale);
+                                 0.0, 0.94, 1.0, 0.90, 1.6 * scale);
 
         // Ring 2 (Polar Orbit Gyro - Quantum Emerald)
         draw_3d_wireframe_circle(cr, &sys->camera, cx, cy, 46.0,
                                  sys->core_rot_pitch + 1.57, 0.0, sys->core_rot_yaw * 0.8,
-                                 0.0, 1.0, 0.835, 0.70, 1.3 * scale);
+                                 0.0, 1.0, 0.835, 0.75, 1.4 * scale);
 
         // Ring 3 (Outer Containment Field - Amber Gold)
-        draw_3d_wireframe_circle(cr, &sys->camera, cx, cy, 54.0,
+        draw_3d_wireframe_circle(cr, &sys->camera, cx, cy, 56.0,
                                  sys->core_rot_pitch * -0.4, sys->core_rot_yaw * 0.5, 1.2,
-                                 1.0, 0.75, 0.1, 0.40, 0.9 * scale);
+                                 1.0, 0.80, 0.15, 0.45, 1.0 * scale);
     } else {
         // Warning / Connection lost amber-red gyros
         draw_3d_wireframe_circle(cr, &sys->camera, cx, cy, 38.0,

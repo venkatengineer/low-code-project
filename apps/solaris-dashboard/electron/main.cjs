@@ -3,7 +3,6 @@ const path = require('path');
 const fs = require('fs');
 const { exec } = require('child_process');
 const telemetry = require('./system-telemetry.cjs');
-const sessionManager = require('./ssh-session-manager.cjs');
 
 // Configure application name for Wayland window identification
 app.setName('solaris-dashboard');
@@ -142,7 +141,7 @@ ipcMain.on('set-ignore-mouse-events', (event, ignore, options) => {
   }
 });
 
-// Window focus control for immersive terminal typing
+// Window focus control
 ipcMain.on('set-window-focusable', (event, focusable) => {
   if (mainWindow && !mainWindow.isDestroyed()) {
     mainWindow.setFocusable(focusable);
@@ -150,81 +149,6 @@ ipcMain.on('set-window-focusable', (event, focusable) => {
       mainWindow.focus();
     }
   }
-});
-
-// Terminal & SSH Gateway IPC handlers
-ipcMain.handle('terminal-start-local', (event, payload = {}) => {
-  const sessionId = payload.sessionId || 'default';
-  const cols = payload.cols || 80;
-  const rows = payload.rows || 24;
-
-  return sessionManager.startLocalSession(
-    sessionId,
-    cols,
-    rows,
-    (data) => {
-      if (mainWindow && !mainWindow.isDestroyed()) {
-        mainWindow.webContents.send('terminal-data', { sessionId, data });
-      }
-    },
-    (code) => {
-      if (mainWindow && !mainWindow.isDestroyed()) {
-        mainWindow.webContents.send('terminal-exit', { sessionId, code });
-      }
-    }
-  );
-});
-
-ipcMain.handle('terminal-start-ssh', (event, payload = {}) => {
-  const sessionId = payload.sessionId || 'ssh-session';
-  const cols = payload.cols || 80;
-  const rows = payload.rows || 24;
-  const config = payload.config || {};
-
-  return sessionManager.startSshSession(
-    sessionId,
-    config,
-    cols,
-    rows,
-    (data) => {
-      if (mainWindow && !mainWindow.isDestroyed()) {
-        mainWindow.webContents.send('terminal-data', { sessionId, data });
-      }
-    },
-    () => {
-      if (mainWindow && !mainWindow.isDestroyed()) {
-        mainWindow.webContents.send('terminal-exit', { sessionId });
-      }
-    },
-    (errMsg) => {
-      if (mainWindow && !mainWindow.isDestroyed()) {
-        mainWindow.webContents.send('terminal-error', { sessionId, error: errMsg });
-      }
-    }
-  );
-});
-
-ipcMain.on('terminal-send-data', (event, payload = {}) => {
-  const sessionId = payload.sessionId || 'default';
-  sessionManager.sendData(sessionId, payload.data);
-});
-
-ipcMain.on('terminal-resize', (event, payload = {}) => {
-  const sessionId = payload.sessionId || 'default';
-  sessionManager.resizeSession(sessionId, payload.cols, payload.rows);
-});
-
-ipcMain.on('terminal-close', (event, payload = {}) => {
-  const sessionId = payload.sessionId || 'default';
-  sessionManager.closeSession(sessionId);
-});
-
-ipcMain.handle('get-system-services', async () => {
-  return await sessionManager.getSystemServices();
-});
-
-ipcMain.handle('manage-service', async (event, payload = {}) => {
-  return await sessionManager.manageService(payload.service, payload.action);
 });
 
 app.whenReady().then(() => {
