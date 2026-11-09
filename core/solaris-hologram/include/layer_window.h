@@ -39,12 +39,7 @@ struct hologram_app_s {
 
     struct timeval last_time;
     guint timer_id;
-
-    // Gesture & Click Disambiguation State
-    server_hotspot_t pending_hotspot;
-    int pending_tab;
-    int pending_term_btn;
-    double last_swipe_time;
+    gint64 last_frame_time;
 };
 
 // Lifecycle

@@ -9,8 +9,12 @@
 
 static void solaris_play_sound(const char *name) {
     if (!name) return;
-    char cmd[320];
-    snprintf(cmd, sizeof(cmd), "pw-play /mnt/d/linux/projects/solaris-os/assets/sounds/edex/%s.wav 2>/dev/null || paplay /mnt/d/linux/projects/solaris-os/assets/sounds/edex/%s.wav 2>/dev/null &", name, name);
+    char cmd[380];
+    snprintf(cmd, sizeof(cmd),
+        "(pw-play /mnt/d/linux/projects/solaris-os/assets/sounds/edex/%s.wav 2>/dev/null || "
+        "paplay /mnt/d/linux/projects/solaris-os/assets/sounds/edex/%s.wav 2>/dev/null || "
+        "aplay -q /mnt/d/linux/projects/solaris-os/assets/sounds/edex/%s.wav 2>/dev/null) &",
+        name, name, name);
     system(cmd);
 }
 
@@ -24,21 +28,22 @@ static void niri_event_handler(const char *event_type, struct json_object *event
     }
 }
 
-static gboolean on_frame_tick(gpointer user_data) {
+// 60FPS Hardware-VSynced Frame Tick Callback tied to Wayland Compositor Frame Clock
+static gboolean on_widget_tick(GtkWidget *widget, GdkFrameClock *frame_clock, gpointer user_data) {
     hologram_app_t *app = (hologram_app_t *)user_data;
 
+    gint64 frame_time = gdk_frame_clock_get_frame_time(frame_clock); // in microseconds
+    double dt = 0.016667;
+    if (app->last_frame_time != 0) {
+        dt = (double)(frame_time - app->last_frame_time) * 1e-6;
+        if (dt < 0.001 || dt > 0.08) dt = 0.016667;
+    }
+    app->last_frame_time = frame_time;
+
     static int frame_count = 0;
-    if (++frame_count % 120 == 0) {
+    if (++frame_count % 180 == 0) {
         malloc_trim(0);
     }
-
-    struct timeval now;
-    gettimeofday(&now, NULL);
-    double dt = (now.tv_sec - app->last_time.tv_sec) +
-                (now.tv_usec - app->last_time.tv_usec) * 1e-6;
-    app->last_time = now;
-
-    if (dt > 0.1) dt = 0.1;
 
     double w = app->is_command_center_mode ? 1706.0 : 740.0;
     double h = app->is_command_center_mode ? 1066.0 : 680.0;
@@ -71,12 +76,7 @@ static gboolean on_frame_tick(gpointer user_data) {
         app->sys.hovered_core = FALSE;
     }
 
-    for (int i = 0; i < app->view_count; i++) {
-        if (app->views[i].drawing_area) {
-            gtk_widget_queue_draw(app->views[i].drawing_area);
-        }
-    }
-
+    gtk_widget_queue_draw(widget);
     return G_SOURCE_CONTINUE;
 }
 
@@ -89,7 +89,7 @@ static double get_hologram_awakening_elapsed(void) {
     gettimeofday(&tv, NULL);
     double now = (double)tv.tv_sec + ((double)tv.tv_usec / 1000000.0);
 
-    if (now - s_last_check_time > 0.030) {
+    if (now - s_last_check_time > 0.20) {
         s_last_check_time = now;
 
         FILE *lfp = fopen("/tmp/solaris_lock_state", "r");
@@ -296,10 +296,6 @@ static gboolean on_button_press(GtkWidget *widget, GdkEventButton *event, gpoint
     app->drag_last_y = my;
     app->is_dragging_camera = TRUE;
 
-    app->pending_tab = -1;
-    app->pending_hotspot = HOTSPOT_NONE;
-    app->pending_term_btn = -1;
-
     if (app->is_command_center_mode) {
         if (command_center_handle_click(&app->cc, &app->sys, &app->ipc, mx, my)) {
             return TRUE;
@@ -417,6 +413,9 @@ static gboolean on_key_press(GtkWidget *widget, GdkEventKey *event, gpointer use
 }
 
 void layer_window_set_mode(hologram_app_t *app, gboolean command_center_mode) {
+    if (app->is_command_center_mode != command_center_mode) {
+        solaris_play_sound(command_center_mode ? "expand" : "panels");
+    }
     app->is_command_center_mode = command_center_mode;
     app->cc.is_active = command_center_mode;
 
@@ -560,6 +559,7 @@ static void create_view_for_monitor(hologram_app_t *app, GdkMonitor *monitor, gb
     g_signal_connect(da, "leave-notify-event", G_CALLBACK(on_leave_notify), app);
     g_signal_connect(da, "scroll-event", G_CALLBACK(on_scroll), app);
     g_signal_connect(win, "key-press-event", G_CALLBACK(on_key_press), app);
+    gtk_widget_add_tick_callback(da, on_widget_tick, app, NULL);
 
     gtk_container_add(GTK_CONTAINER(win), da);
 
@@ -647,8 +647,7 @@ gboolean layer_window_init(hologram_app_t *app, gboolean start_as_command_center
         }
     }
 
-    gettimeofday(&app->last_time, NULL);
-    app->timer_id = g_timeout_add(16, on_frame_tick, app);
+    app->last_frame_time = 0;
 
     return (app->view_count > 0);
 }

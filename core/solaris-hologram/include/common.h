@@ -103,7 +103,7 @@ static inline color_rgb_t get_station_color(int idx) {
 // Limits
 #define MAX_WORKSPACES 16
 #define MAX_WINDOWS 64
-#define MAX_PARTICLES 180
+#define MAX_PARTICLES 70
 
 // Forward structure declarations
 typedef struct vec3_s vec3_t;

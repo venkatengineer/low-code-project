@@ -25,7 +25,9 @@ void render_hud_background_and_grid(cairo_t *cr, const orbital_system_t *sys, do
     const int RAYS = 16;
     double rot_emitter = sys->time_sec * 0.15;
 
-    // Upward Volumetric Holographic Light Columns
+    // Upward Volumetric Holographic Light Columns (Batched single stroke)
+    cairo_set_source_rgba(cr, COLOR_CYAN_R, COLOR_CYAN_G, COLOR_CYAN_B, 0.14);
+    cairo_set_line_width(cr, 1.0);
     for (int r = 0; r < RAYS; r++) {
         double a = rot_emitter + (2.0 * M_PI * r) / (double)RAYS;
         double rad_base = (r % 2 == 0) ? 90.0 : 180.0;
@@ -35,18 +37,11 @@ void render_hud_background_and_grid(cairo_t *cr, const orbital_system_t *sys, do
         vec2_t s_b, s_t;
         if (project_to_screen(p_bottom, &sys->camera, cx, cy, &s_b, NULL, NULL) &&
             project_to_screen(p_top, &sys->camera, cx, cy, &s_t, NULL, NULL)) {
-            cairo_pattern_t *beam = cairo_pattern_create_linear(s_b.x, s_b.y, s_t.x, s_t.y);
-            cairo_pattern_add_color_stop_rgba(beam, 0.0, COLOR_CYAN_R, COLOR_CYAN_G, COLOR_CYAN_B, 0.22);
-            cairo_pattern_add_color_stop_rgba(beam, 0.5, COLOR_TEAL_R, COLOR_TEAL_G, COLOR_TEAL_B, 0.08);
-            cairo_pattern_add_color_stop_rgba(beam, 1.0, 0.0, 0.0, 0.0, 0.0);
-            cairo_set_source(cr, beam);
-            cairo_set_line_width(cr, (r % 2 == 0 ? 1.4 : 0.8));
             cairo_move_to(cr, s_b.x, s_b.y);
             cairo_line_to(cr, s_t.x, s_t.y);
-            cairo_stroke(cr);
-            cairo_pattern_destroy(beam);
         }
     }
+    cairo_stroke(cr);
 
     // 3D Perspective Plane Grid (Horizontal XZ ground plane at y = -60)
     cairo_set_line_width(cr, 0.7);

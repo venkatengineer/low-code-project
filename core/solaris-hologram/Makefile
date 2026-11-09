@@ -12,8 +12,6 @@ SRCS = src/main.c \
        src/model/model.c \
        src/render/particle_system.c \
        src/render/orbital_core.c \
-       src/render/render_server.c \
-       src/render/render_terminal.c \
        src/render/render_core.c \
        src/render/render_orbits.c \
        src/render/render_nodes.c \

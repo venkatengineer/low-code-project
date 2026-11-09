@@ -1,104 +1,11 @@
 #include "render_core.h"
 #include "math3d.h"
+#include <math.h>
 
-static void draw_3d_wireframe_circle(cairo_t *cr, const camera3d_t *cam, double cx, double cy,
-                                     double radius, double pitch, double yaw, double roll,
-                                     double r, double g, double b, double alpha, double line_width) {
-    const int STEPS = 96;
-    vec2_t pts[96];
-    gboolean valid[96];
+#define LAT_STEPS 48
+#define MERIDIAN_STEPS 32
 
-    for (int i = 0; i < STEPS; i++) {
-        double angle = (2.0 * M_PI * i) / STEPS;
-        vec3_t local_pt = vec3_create(radius * cos(angle), 0, radius * sin(angle));
-        vec3_t rot_pt = vec3_rotate_euler(local_pt, pitch, yaw, roll);
-        valid[i] = project_to_screen(rot_pt, cam, cx, cy, &pts[i], NULL, NULL);
-    }
-
-    cairo_set_source_rgba(cr, r, g, b, alpha);
-    cairo_set_line_width(cr, line_width);
-
-    gboolean in_path = FALSE;
-    for (int i = 0; i < STEPS; i++) {
-        int next = (i + 1) % STEPS;
-        if (valid[i] && valid[next]) {
-            if (!in_path) {
-                cairo_move_to(cr, pts[i].x, pts[i].y);
-                in_path = TRUE;
-            }
-            cairo_line_to(cr, pts[next].x, pts[next].y);
-        } else {
-            in_path = FALSE;
-        }
-    }
-    cairo_stroke(cr);
-}
-
-static void draw_3d_geodesic_shield(cairo_t *cr, const camera3d_t *cam, double cx, double cy,
-                                    double radius, double pitch, double yaw, double roll,
-                                    double r, double g, double b, double alpha, double scale) {
-    const double t = (1.0 + sqrt(5.0)) / 2.0;
-    const double norm = radius / sqrt(1.0 + t * t);
-
-    // 12 vertices of regular icosahedron
-    vec3_t v[12] = {
-        vec3_create(-norm,  t * norm,  0),
-        vec3_create( norm,  t * norm,  0),
-        vec3_create(-norm, -t * norm,  0),
-        vec3_create( norm, -t * norm,  0),
-        vec3_create( 0, -norm,  t * norm),
-        vec3_create( 0,  norm,  t * norm),
-        vec3_create( 0, -norm, -t * norm),
-        vec3_create( 0,  norm, -t * norm),
-        vec3_create( t * norm,  0, -norm),
-        vec3_create( t * norm,  0,  norm),
-        vec3_create(-t * norm,  0, -norm),
-        vec3_create(-t * norm,  0,  norm),
-    };
-
-    vec2_t pts[12];
-    double depths[12];
-    gboolean valid[12];
-
-    for (int i = 0; i < 12; i++) {
-        vec3_t rot_v = vec3_rotate_euler(v[i], pitch, yaw, roll);
-        valid[i] = project_to_screen(rot_v, cam, cx, cy, &pts[i], NULL, &depths[i]);
-    }
-
-    // 30 edges of icosahedron
-    static const int edges[30][2] = {
-        {0,11}, {0,5}, {0,1}, {0,7}, {0,10},
-        {1,5}, {5,11}, {11,10}, {10,7}, {7,1},
-        {3,9}, {3,4}, {3,2}, {3,6}, {3,8},
-        {2,4}, {4,9}, {9,8}, {8,6}, {6,2},
-        {4,5}, {5,9}, {9,1}, {1,8}, {8,7},
-        {7,6}, {6,10}, {10,2}, {2,11}, {11,4}
-    };
-
-    cairo_set_source_rgba(cr, r, g, b, alpha);
-    cairo_set_line_width(cr, 1.1 * scale);
-
-    for (int i = 0; i < 30; i++) {
-        int e0 = edges[i][0];
-        int e1 = edges[i][1];
-        if (valid[e0] && valid[e1]) {
-            cairo_move_to(cr, pts[e0].x, pts[e0].y);
-            cairo_line_to(cr, pts[e1].x, pts[e1].y);
-        }
-    }
-    cairo_stroke(cr);
-
-    // Glowing quantum vertices
-    for (int i = 0; i < 12; i++) {
-        if (valid[i]) {
-            double v_fade = (depths[i] < cam->distance) ? 1.0 : 0.55;
-            cairo_set_source_rgba(cr, 1.0, 1.0, 1.0, alpha * v_fade);
-            cairo_arc(cr, pts[i].x, pts[i].y, 2.5 * scale, 0, 2 * M_PI);
-            cairo_fill(cr);
-        }
-    }
-}
-
+// Primary 60FPS Holographic Planetary Core Renderer (Batched Cairo Operations)
 void render_session_core(cairo_t *cr, const orbital_system_t *sys, double cx, double cy) {
     vec2_t center_sp;
     double scale, depth;
@@ -108,104 +15,270 @@ void render_session_core(cairo_t *cr, const orbital_system_t *sys, double cx, do
 
     gboolean conn = sys->is_connected;
     double pulse = sys->core_pulse;
-    double base_r = 32.0 * scale;
+    double base_r = 38.0 * scale;
 
-    // 1. Outer Volumetric Plasma Corona (Radial Gradient)
-    double glow_r = base_r * (2.8 + (0.4 * pulse));
-    cairo_pattern_t *rad_pat = cairo_pattern_create_radial(center_sp.x, center_sp.y, 0,
-                                                           center_sp.x, center_sp.y, glow_r);
+    // 1. Atmospheric Volumetric Glow & Corona
+    double corona_r = base_r * (2.8 + 0.35 * pulse);
+    cairo_pattern_t *corona_pat = cairo_pattern_create_radial(center_sp.x, center_sp.y, 0,
+                                                              center_sp.x, center_sp.y, corona_r);
     if (conn) {
-        cairo_pattern_add_color_stop_rgba(rad_pat, 0.0, 1.0, 1.0, 1.0, 0.95);
-        cairo_pattern_add_color_stop_rgba(rad_pat, 0.2, COLOR_CYAN_R, COLOR_CYAN_G, COLOR_CYAN_B, 0.65);
-        cairo_pattern_add_color_stop_rgba(rad_pat, 0.5, COLOR_TEAL_R, COLOR_TEAL_G, COLOR_TEAL_B, 0.25);
-        cairo_pattern_add_color_stop_rgba(rad_pat, 0.8, COLOR_VIOLET_R, COLOR_VIOLET_G, COLOR_VIOLET_B, 0.08);
-        cairo_pattern_add_color_stop_rgba(rad_pat, 1.0, 0.0, 0.0, 0.0, 0.0);
+        cairo_pattern_add_color_stop_rgba(corona_pat, 0.0, 1.0, 1.0, 1.0, 0.95);
+        cairo_pattern_add_color_stop_rgba(corona_pat, 0.18, COLOR_CYAN_R, COLOR_CYAN_G, COLOR_CYAN_B, 0.70);
+        cairo_pattern_add_color_stop_rgba(corona_pat, 0.45, COLOR_TEAL_R, COLOR_TEAL_G, COLOR_TEAL_B, 0.28);
+        cairo_pattern_add_color_stop_rgba(corona_pat, 0.75, COLOR_VIOLET_R, COLOR_VIOLET_G, COLOR_VIOLET_B, 0.10);
+        cairo_pattern_add_color_stop_rgba(corona_pat, 1.0, 0.0, 0.0, 0.0, 0.0);
     } else {
-        // Warning / Connection lost amber-red corona
-        cairo_pattern_add_color_stop_rgba(rad_pat, 0.0, 1.0, 0.9, 0.9, 0.95);
-        cairo_pattern_add_color_stop_rgba(rad_pat, 0.2, COLOR_ALERT_R, 0.4, 0.1, 0.70);
-        cairo_pattern_add_color_stop_rgba(rad_pat, 0.6, COLOR_ALERT_R * 0.8, 0.1, 0.1, 0.20);
-        cairo_pattern_add_color_stop_rgba(rad_pat, 1.0, 0.0, 0.0, 0.0, 0.0);
+        cairo_pattern_add_color_stop_rgba(corona_pat, 0.0, 1.0, 0.9, 0.9, 0.95);
+        cairo_pattern_add_color_stop_rgba(corona_pat, 0.25, COLOR_ALERT_R, 0.4, 0.1, 0.75);
+        cairo_pattern_add_color_stop_rgba(corona_pat, 0.65, COLOR_ALERT_R * 0.8, 0.1, 0.1, 0.20);
+        cairo_pattern_add_color_stop_rgba(corona_pat, 1.0, 0.0, 0.0, 0.0, 0.0);
     }
-
-    cairo_set_source(cr, rad_pat);
-    cairo_arc(cr, center_sp.x, center_sp.y, glow_r, 0, 2 * M_PI);
+    cairo_set_source(cr, corona_pat);
+    cairo_arc(cr, center_sp.x, center_sp.y, corona_r, 0, 2 * M_PI);
     cairo_fill(cr);
-    cairo_pattern_destroy(rad_pat);
+    cairo_pattern_destroy(corona_pat);
 
-    // 2. Rotating 3D Gyroscopic Gimbal Wireframes & Geodesic Shield
+    // 2. Translucent Planetary Core Sphere (Spherical 3D Shading)
+    double core_radius = base_r * 0.72;
+    double light_off_x = center_sp.x - (core_radius * 0.28);
+    double light_off_y = center_sp.y - (core_radius * 0.28);
+    cairo_pattern_t *sphere_pat = cairo_pattern_create_radial(light_off_x, light_off_y, 0,
+                                                              center_sp.x, center_sp.y, core_radius);
     if (conn) {
-        // Outer 3D Geodesic Icosahedron Energy Cage (Cosmic Violet / Electric Cyan)
-        draw_3d_geodesic_shield(cr, &sys->camera, cx, cy, 64.0,
-                                sys->core_rot_pitch * 0.8, sys->core_rot_yaw * 0.6, sys->core_rot_yaw * -0.4,
-                                0.0, 0.94, 1.0, 0.60, scale);
-
-        // Nested Inner 3D Geodesic Core (Quantum Emerald)
-        draw_3d_geodesic_shield(cr, &sys->camera, cx, cy, 48.0,
-                                sys->core_rot_pitch * -0.7, sys->core_rot_yaw * -0.8, sys->core_rot_yaw * 0.5,
-                                0.0, 1.0, 0.40, 0.45, scale);
-
-        // Ring 1 (Equatorial Gyro - Electric Cyan)
-        draw_3d_wireframe_circle(cr, &sys->camera, cx, cy, 38.0,
-                                 sys->core_rot_pitch, sys->core_rot_yaw, 0.0,
-                                 0.0, 0.94, 1.0, 0.90, 1.6 * scale);
-
-        // Ring 2 (Polar Orbit Gyro - Quantum Emerald)
-        draw_3d_wireframe_circle(cr, &sys->camera, cx, cy, 46.0,
-                                 sys->core_rot_pitch + 1.57, 0.0, sys->core_rot_yaw * 0.8,
-                                 0.0, 1.0, 0.835, 0.75, 1.4 * scale);
-
-        // Ring 3 (Outer Containment Field - Amber Gold)
-        draw_3d_wireframe_circle(cr, &sys->camera, cx, cy, 56.0,
-                                 sys->core_rot_pitch * -0.4, sys->core_rot_yaw * 0.5, 1.2,
-                                 1.0, 0.80, 0.15, 0.45, 1.0 * scale);
+        cairo_pattern_add_color_stop_rgba(sphere_pat, 0.0, 1.0, 1.0, 1.0, 0.98);
+        cairo_pattern_add_color_stop_rgba(sphere_pat, 0.30, COLOR_CYAN_R, COLOR_CYAN_G, COLOR_CYAN_B, 0.85);
+        cairo_pattern_add_color_stop_rgba(sphere_pat, 0.70, 0.04, 0.16, 0.28, 0.82);
+        cairo_pattern_add_color_stop_rgba(sphere_pat, 1.0, 0.01, 0.04, 0.10, 0.90);
     } else {
-        // Warning / Connection lost amber-red gyros
-        draw_3d_wireframe_circle(cr, &sys->camera, cx, cy, 38.0,
-                                 sys->core_rot_pitch, sys->core_rot_yaw, 0.0,
-                                 COLOR_ALERT_R, 0.3, 0.1, 0.85, 1.5 * scale);
-        draw_3d_wireframe_circle(cr, &sys->camera, cx, cy, 48.0,
-                                 sys->core_rot_pitch + 1.57, 0.0, sys->core_rot_yaw * 0.8,
-                                 1.0, 0.5, 0.0, 0.60, 1.2 * scale);
+        cairo_pattern_add_color_stop_rgba(sphere_pat, 0.0, 1.0, 1.0, 1.0, 0.98);
+        cairo_pattern_add_color_stop_rgba(sphere_pat, 0.40, COLOR_ALERT_R, 0.45, 0.1, 0.85);
+        cairo_pattern_add_color_stop_rgba(sphere_pat, 1.0, 0.35, 0.05, 0.05, 0.90);
     }
-
-    // 3. Inner Solid Fusion Reactor Core
-    double core_radius = base_r * 0.68;
-    cairo_pattern_t *inner_pat = cairo_pattern_create_radial(center_sp.x - (3.0 * scale),
-                                                             center_sp.y - (3.0 * scale), 0,
-                                                             center_sp.x, center_sp.y, core_radius);
-    if (conn) {
-        cairo_pattern_add_color_stop_rgba(inner_pat, 0.0, 1.0, 1.0, 1.0, 1.0);
-        cairo_pattern_add_color_stop_rgba(inner_pat, 0.35, 0.0, 0.94, 1.0, 0.95);
-        cairo_pattern_add_color_stop_rgba(inner_pat, 0.70, 0.45, 0.20, 0.90, 0.90);
-        cairo_pattern_add_color_stop_rgba(inner_pat, 1.0, 0.02, 0.06, 0.20, 0.85);
-    } else {
-        cairo_pattern_add_color_stop_rgba(inner_pat, 0.0, 1.0, 1.0, 1.0, 1.0);
-        cairo_pattern_add_color_stop_rgba(inner_pat, 0.5, COLOR_ALERT_R, 0.5, 0.1, 0.95);
-        cairo_pattern_add_color_stop_rgba(inner_pat, 1.0, 0.6, 0.0, 0.1, 0.9);
-    }
-    cairo_set_source(cr, inner_pat);
+    cairo_set_source(cr, sphere_pat);
     cairo_arc(cr, center_sp.x, center_sp.y, core_radius, 0, 2 * M_PI);
     cairo_fill(cr);
-    cairo_pattern_destroy(inner_pat);
+    cairo_pattern_destroy(sphere_pat);
 
-    // 4. Rotating Reactor Notches (Hexagonal aperture ticks)
-    cairo_save(cr);
-    cairo_translate(cr, center_sp.x, center_sp.y);
-    cairo_rotate(cr, sys->core_rot_yaw * 1.5);
-    cairo_set_source_rgba(cr, 1.0, 1.0, 1.0, 0.85);
-    cairo_set_line_width(cr, 1.5 * scale);
-    for (int k = 0; k < 6; k++) {
-        double a = k * (M_PI / 3.0);
-        double r1 = core_radius * 0.7;
-        double r2 = core_radius * 1.1;
-        cairo_move_to(cr, cos(a) * r1, sin(a) * r1);
-        cairo_line_to(cr, cos(a) * r2, sin(a) * r2);
+    // 3. 3D Wireframe Graticule (Batched Back and Front Passes)
+    double sphere_3d_r = 44.0;
+    double p_pitch = sys->core_rot_pitch;
+    double p_yaw = sys->core_rot_yaw;
+    double cam_dist = sys->camera.distance;
+
+    // A. Back-side Wireframe (Dimmed Depth Cue)
+    cairo_set_source_rgba(cr, COLOR_CYAN_R, COLOR_CYAN_G, COLOR_CYAN_B, 0.20);
+    cairo_set_line_width(cr, 0.85 * scale);
+
+    // 5 Latitudes: -60, -30, 0 (Equator), +30, +60
+    static const double lats[] = { -1.05, -0.52, 0.0, 0.52, 1.05 };
+    for (int k = 0; k < 5; k++) {
+        double circle_r = sphere_3d_r * cos(lats[k]);
+        double circle_y = sphere_3d_r * sin(lats[k]);
+
+        gboolean in_p = FALSE;
+        for (int i = 0; i < LAT_STEPS; i++) {
+            int next = (i + 1) % LAT_STEPS;
+            double a1 = (2.0 * M_PI * i) / (double)LAT_STEPS;
+            double a2 = (2.0 * M_PI * next) / (double)LAT_STEPS;
+
+            vec3_t p1 = vec3_rotate_euler(vec3_create(circle_r * cos(a1), circle_y, circle_r * sin(a1)), p_pitch, p_yaw, 0.0);
+            vec3_t p2 = vec3_rotate_euler(vec3_create(circle_r * cos(a2), circle_y, circle_r * sin(a2)), p_pitch, p_yaw, 0.0);
+
+            vec2_t s1, s2;
+            double d1, d2;
+            if (project_to_screen(p1, &sys->camera, cx, cy, &s1, NULL, &d1) &&
+                project_to_screen(p2, &sys->camera, cx, cy, &s2, NULL, &d2)) {
+                if (((d1 + d2) * 0.5) >= cam_dist) {
+                    if (!in_p) { cairo_move_to(cr, s1.x, s1.y); in_p = TRUE; }
+                    cairo_line_to(cr, s2.x, s2.y);
+                } else {
+                    in_p = FALSE;
+                }
+            } else {
+                in_p = FALSE;
+            }
+        }
+    }
+
+    // 8 Longitude Meridians (Back)
+    for (int m = 0; m < 8; m++) {
+        double lon = (M_PI * m) / 8.0;
+        gboolean in_p = FALSE;
+        for (int i = 0; i < MERIDIAN_STEPS - 1; i++) {
+            double phi1 = -M_PI * 0.5 + (M_PI * i) / (double)(MERIDIAN_STEPS - 1);
+            double phi2 = -M_PI * 0.5 + (M_PI * (i + 1)) / (double)(MERIDIAN_STEPS - 1);
+
+            vec3_t p1 = vec3_rotate_euler(vec3_create(sphere_3d_r * cos(phi1) * cos(lon), sphere_3d_r * sin(phi1), sphere_3d_r * cos(phi1) * sin(lon)), p_pitch, p_yaw, 0.0);
+            vec3_t p2 = vec3_rotate_euler(vec3_create(sphere_3d_r * cos(phi2) * cos(lon), sphere_3d_r * sin(phi2), sphere_3d_r * cos(phi2) * sin(lon)), p_pitch, p_yaw, 0.0);
+
+            vec2_t s1, s2;
+            double d1, d2;
+            if (project_to_screen(p1, &sys->camera, cx, cy, &s1, NULL, &d1) &&
+                project_to_screen(p2, &sys->camera, cx, cy, &s2, NULL, &d2)) {
+                if (((d1 + d2) * 0.5) >= cam_dist) {
+                    if (!in_p) { cairo_move_to(cr, s1.x, s1.y); in_p = TRUE; }
+                    cairo_line_to(cr, s2.x, s2.y);
+                } else {
+                    in_p = FALSE;
+                }
+            } else {
+                in_p = FALSE;
+            }
+        }
     }
     cairo_stroke(cr);
-    cairo_restore(cr);
 
-    // 5. Offline Status HUD Tag (only when link is broken)
+    // B. Front-side Wireframe (Crisp Luminous Cyan)
+    cairo_set_source_rgba(cr, COLOR_CYAN_R, COLOR_CYAN_G, COLOR_CYAN_B, 0.85);
+    cairo_set_line_width(cr, 1.35 * scale);
+
+    for (int k = 0; k < 5; k++) {
+        double circle_r = sphere_3d_r * cos(lats[k]);
+        double circle_y = sphere_3d_r * sin(lats[k]);
+
+        gboolean in_p = FALSE;
+        for (int i = 0; i < LAT_STEPS; i++) {
+            int next = (i + 1) % LAT_STEPS;
+            double a1 = (2.0 * M_PI * i) / (double)LAT_STEPS;
+            double a2 = (2.0 * M_PI * next) / (double)LAT_STEPS;
+
+            vec3_t p1 = vec3_rotate_euler(vec3_create(circle_r * cos(a1), circle_y, circle_r * sin(a1)), p_pitch, p_yaw, 0.0);
+            vec3_t p2 = vec3_rotate_euler(vec3_create(circle_r * cos(a2), circle_y, circle_r * sin(a2)), p_pitch, p_yaw, 0.0);
+
+            vec2_t s1, s2;
+            double d1, d2;
+            if (project_to_screen(p1, &sys->camera, cx, cy, &s1, NULL, &d1) &&
+                project_to_screen(p2, &sys->camera, cx, cy, &s2, NULL, &d2)) {
+                if (((d1 + d2) * 0.5) < cam_dist) {
+                    if (!in_p) { cairo_move_to(cr, s1.x, s1.y); in_p = TRUE; }
+                    cairo_line_to(cr, s2.x, s2.y);
+                } else {
+                    in_p = FALSE;
+                }
+            } else {
+                in_p = FALSE;
+            }
+        }
+    }
+
+    // 8 Longitude Meridians (Front)
+    for (int m = 0; m < 8; m++) {
+        double lon = (M_PI * m) / 8.0;
+        gboolean in_p = FALSE;
+        for (int i = 0; i < MERIDIAN_STEPS - 1; i++) {
+            double phi1 = -M_PI * 0.5 + (M_PI * i) / (double)(MERIDIAN_STEPS - 1);
+            double phi2 = -M_PI * 0.5 + (M_PI * (i + 1)) / (double)(MERIDIAN_STEPS - 1);
+
+            vec3_t p1 = vec3_rotate_euler(vec3_create(sphere_3d_r * cos(phi1) * cos(lon), sphere_3d_r * sin(phi1), sphere_3d_r * cos(phi1) * sin(lon)), p_pitch, p_yaw, 0.0);
+            vec3_t p2 = vec3_rotate_euler(vec3_create(sphere_3d_r * cos(phi2) * cos(lon), sphere_3d_r * sin(phi2), sphere_3d_r * cos(phi2) * sin(lon)), p_pitch, p_yaw, 0.0);
+
+            vec2_t s1, s2;
+            double d1, d2;
+            if (project_to_screen(p1, &sys->camera, cx, cy, &s1, NULL, &d1) &&
+                project_to_screen(p2, &sys->camera, cx, cy, &s2, NULL, &d2)) {
+                if (((d1 + d2) * 0.5) < cam_dist) {
+                    if (!in_p) { cairo_move_to(cr, s1.x, s1.y); in_p = TRUE; }
+                    cairo_line_to(cr, s2.x, s2.y);
+                } else {
+                    in_p = FALSE;
+                }
+            } else {
+                in_p = FALSE;
+            }
+        }
+    }
+    cairo_stroke(cr);
+
+    // 4. Equatorial Navigation Reticle & Ticks (radius 66.0)
+    double dial_r = 64.0;
+    cairo_set_source_rgba(cr, 0.0, 1.0, 0.835, 0.50);
+    cairo_set_line_width(cr, 1.1 * scale);
+
+    const int TICKS = 24;
+    for (int i = 0; i < TICKS; i++) {
+        double angle = (2.0 * M_PI * i) / (double)TICKS;
+        gboolean is_major = (i % 6 == 0);
+        double tick_len = (is_major ? 7.0 : 3.5) * scale;
+
+        vec3_t p1 = vec3_rotate_euler(vec3_create(dial_r * cos(angle), 0, dial_r * sin(angle)), p_pitch, p_yaw, 0.0);
+        vec3_t p2 = vec3_rotate_euler(vec3_create((dial_r + tick_len) * cos(angle), 0, (dial_r + tick_len) * sin(angle)), p_pitch, p_yaw, 0.0);
+
+        vec2_t s1, s2;
+        double d1;
+        if (project_to_screen(p1, &sys->camera, cx, cy, &s1, NULL, &d1) &&
+            project_to_screen(p2, &sys->camera, cx, cy, &s2, NULL, NULL)) {
+            if (d1 < cam_dist) {
+                cairo_move_to(cr, s1.x, s1.y);
+                cairo_line_to(cr, s2.x, s2.y);
+            }
+        }
+    }
+    cairo_stroke(cr);
+
+    // 5. Rotating 360-Degree Radar / Laser Sweep Beam (eDEX-UI Signature)
+    if (conn) {
+        cairo_save(cr);
+        double sweep_ang = sys->core.radar_angle;
+        double sweep_span = M_PI * 0.25; // ~45 degrees fading trail
+        const int SWEEP_STEPS = 12;
+
+        for (int s = 0; s < SWEEP_STEPS; s++) {
+            double frac1 = (double)s / (double)SWEEP_STEPS;
+            double frac2 = (double)(s + 1) / (double)SWEEP_STEPS;
+            double a1 = sweep_ang - (sweep_span * (1.0 - frac1));
+            double a2 = sweep_ang - (sweep_span * (1.0 - frac2));
+
+            vec3_t sp1 = vec3_rotate_euler(vec3_create(sphere_3d_r * 1.05 * cos(a1), 0, sphere_3d_r * 1.05 * sin(a1)), p_pitch, p_yaw, 0.0);
+            vec3_t sp2 = vec3_rotate_euler(vec3_create(sphere_3d_r * 1.05 * cos(a2), 0, sphere_3d_r * 1.05 * sin(a2)), p_pitch, p_yaw, 0.0);
+
+            vec2_t sc1, sc2;
+            double d1, d2;
+            if (project_to_screen(sp1, &sys->camera, cx, cy, &sc1, NULL, &d1) &&
+                project_to_screen(sp2, &sys->camera, cx, cy, &sc2, NULL, &d2)) {
+                if (((d1 + d2) * 0.5) < cam_dist) {
+                    double sweep_alpha = frac2 * 0.40;
+                    cairo_set_source_rgba(cr, 0.0, 1.0, 0.835, sweep_alpha);
+                    cairo_move_to(cr, center_sp.x, center_sp.y);
+                    cairo_line_to(cr, sc1.x, sc1.y);
+                    cairo_line_to(cr, sc2.x, sc2.y);
+                    cairo_close_path(cr);
+                    cairo_fill(cr);
+                }
+            }
+        }
+
+        // Leading laser line
+        vec3_t lead_p = vec3_rotate_euler(vec3_create(sphere_3d_r * 1.12 * cos(sweep_ang), 0, sphere_3d_r * 1.12 * sin(sweep_ang)), p_pitch, p_yaw, 0.0);
+        vec2_t lead_sc;
+        double lead_d;
+        if (project_to_screen(lead_p, &sys->camera, cx, cy, &lead_sc, NULL, &lead_d)) {
+            if (lead_d < cam_dist) {
+                cairo_set_source_rgba(cr, 1.0, 1.0, 1.0, 0.90);
+                cairo_set_line_width(cr, 1.6 * scale);
+                cairo_move_to(cr, center_sp.x, center_sp.y);
+                cairo_line_to(cr, lead_sc.x, lead_sc.y);
+                cairo_stroke(cr);
+            }
+        }
+        cairo_restore(cr);
+    }
+
+    // 6. North & South Polar Beacons (White-Hot Pivots)
+    vec3_t np = vec3_rotate_euler(vec3_create(0, sphere_3d_r, 0), p_pitch, p_yaw, 0.0);
+    vec3_t sp = vec3_rotate_euler(vec3_create(0, -sphere_3d_r, 0), p_pitch, p_yaw, 0.0);
+    vec2_t np_sc, sp_sc;
+    if (project_to_screen(np, &sys->camera, cx, cy, &np_sc, NULL, NULL)) {
+        cairo_set_source_rgba(cr, 1.0, 1.0, 1.0, 0.95);
+        cairo_arc(cr, np_sc.x, np_sc.y, 2.5 * scale, 0, 2 * M_PI);
+        cairo_fill(cr);
+    }
+    if (project_to_screen(sp, &sys->camera, cx, cy, &sp_sc, NULL, NULL)) {
+        cairo_set_source_rgba(cr, 0.0, 0.94, 1.0, 0.80);
+        cairo_arc(cr, sp_sc.x, sp_sc.y, 2.0 * scale, 0, 2 * M_PI);
+        cairo_fill(cr);
+    }
+
+    // 7. Offline Status HUD Tag
     if (!conn) {
         cairo_save(cr);
         PangoLayout *layout = pango_cairo_create_layout(cr);
@@ -218,7 +291,7 @@ void render_session_core(cairo_t *cr, const orbital_system_t *sys, double cx, do
 
         int tw, th;
         pango_layout_get_pixel_size(layout, &tw, &th);
-        cairo_move_to(cr, center_sp.x - (tw * 0.5), center_sp.y + core_radius + (12.0 * scale));
+        cairo_move_to(cr, center_sp.x - (tw * 0.5), center_sp.y + core_radius + (14.0 * scale));
         pango_cairo_show_layout(cr, layout);
         g_object_unref(layout);
         cairo_restore(cr);

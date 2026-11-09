@@ -386,26 +386,18 @@ void orbital_system_tick(orbital_system_t *sys, double dt, double screen_w, doub
     // Update Interactive 3D Server & Holographic Terminal Core
     orbital_core_update(&sys->core, dt);
 
-    // Camera navigation & cinematic autonomous flight
-    if (sys->core.target_state == CORE_STATE_ORBITAL) {
-        // Continuous full-circle orbital surveillance around workspaces
-        sys->camera.target_yaw += dt * 0.06;
-        sys->camera.target_pitch = 0.88 + 0.04 * sin(sys->time_sec * 0.4);
-    } else {
-        // Computational Terrain: Forward-facing isometric perspective with autonomous cinematic sway
-        double cinematic_sway = 0.12 * sin(sys->time_sec * 0.28);
-        sys->camera.target_yaw = 0.20 + cinematic_sway;
-        sys->camera.target_pitch = 0.58 + 0.03 * cos(sys->time_sec * 0.22);
-    }
+    // Autonomous cinematic orbital surveillance around 3D planet
+    sys->camera.target_yaw += dt * 0.04;
+    sys->camera.target_pitch = 0.88 + 0.03 * sin(sys->time_sec * 0.35);
 
     // Update 3D Camera interpolation
     camera3d_update(&sys->camera, dt);
 
-    // Rotate central reactor core
-    sys->core_rot_yaw += dt * 0.45;
-    sys->core_rot_pitch += dt * 0.22;
-    sys->core_pulse = 0.5 + 0.5 * sin(sys->time_sec * 2.8);
-    sys->scanline_phase = fmod(sys->time_sec * 0.6, 1.0);
+    // Rotate central planetary core in sync with simulation
+    sys->core_rot_yaw = sys->core.planet_yaw;
+    sys->core_rot_pitch = sys->core.planet_pitch;
+    sys->core_pulse = 0.5 + 0.5 * sin(sys->core.planet_pulse);
+    sys->scanline_phase = sys->core.scan_phase;
 
     double cx = screen_w * 0.5;
     double cy = screen_h * 0.48;
